@@ -1,44 +1,78 @@
+import { NavigationContainer } from '@react-navigation/native';
+import * as NavigationBar from 'expo-navigation-bar';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useEffect } from 'react';
+import { Platform, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { LibraryScreen } from './src/screens/LibraryScreen';
-import { ReaderScreen } from './src/screens/ReaderScreen';
+import { LibraryProvider } from './src/context/LibraryContext';
+import {
+  flushReaderNavigationIfPending,
+  navigationRef,
+} from './src/navigation/navigationRef';
+import { RootStack } from './src/navigation/RootStack';
+import { I18nProvider } from './src/i18n';
+import { ThemeProvider, useTheme } from './src/theme';
 
-type SelectedBook = {
-  uri: string;
-  bookId: string;
-};
+function AndroidNavigationBar() {
+  const { mode } = useTheme();
 
-export default function App() {
-  const [selectedBook, setSelectedBook] = useState<SelectedBook | null>(null);
-
-  const handleBookSelected = useCallback((uri: string, bookId: string) => {
-    setSelectedBook({ uri, bookId });
+  useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+    void (async () => {
+      try {
+        await NavigationBar.setBackgroundColorAsync('#00000000');
+        await NavigationBar.setBehaviorAsync('overlay-swipe');
+      } catch {
+        // Best-effort: older devices or config may reject some calls.
+      }
+    })();
   }, []);
 
-  const handleBackToLibrary = useCallback(() => {
-    setSelectedBook(null);
-  }, []);
+  useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+    void (async () => {
+      try {
+        await NavigationBar.setButtonStyleAsync(
+          mode === 'dark' ? 'light' : 'dark'
+        );
+      } catch {
+        // ignore
+      }
+    })();
+  }, [mode]);
+
+  return null;
+}
+
+function RootNavigator() {
+  const { mode, colors } = useTheme();
 
   return (
-    <View style={styles.root}>
-      <StatusBar style="dark" />
-      {selectedBook ? (
-        <ReaderScreen
-          bookPath={selectedBook.uri}
-          bookId={selectedBook.bookId}
-          onBackToLibrary={handleBackToLibrary}
-        />
-      ) : (
-        <LibraryScreen onBookSelected={handleBookSelected} />
-      )}
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <AndroidNavigationBar />
+      <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
+      <NavigationContainer ref={navigationRef} onReady={flushReaderNavigationIfPending}>
+        <LibraryProvider>
+          <RootStack />
+        </LibraryProvider>
+      </NavigationContainer>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-});
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <I18nProvider>
+          <RootNavigator />
+        </I18nProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
+  );
+}

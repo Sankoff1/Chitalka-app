@@ -1,3 +1,6 @@
+import 'react-native-gesture-handler';
+import './src/debug/installConsoleCapture';
+
 import { registerRootComponent } from 'expo';
 
 import App from './App';

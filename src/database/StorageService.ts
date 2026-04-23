@@ -1,8 +1,8 @@
 import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 
-import type { ReadingProgress } from '../core/types';
+import type { LibraryBookRecord, ReadingProgress } from '../core/types';
 
-export type { ReadingProgress };
+export type { LibraryBookRecord, ReadingProgress };
 
 const LOG_PREFIX = '[StorageService]';
 
@@ -10,6 +10,8 @@ const LOG_PREFIX = '[StorageService]';
 const DATABASE_NAME = 'chitalka.db';
 
 const TABLE_NAME = 'reading_progress';
+
+const LIBRARY_TABLE = 'library_books';
 
 /**
  * Thrown when the storage layer cannot open the database, run migrations,
@@ -122,6 +124,18 @@ export class StorageService {
         );
         CREATE INDEX IF NOT EXISTS idx_${TABLE_NAME}_last_read
           ON ${TABLE_NAME} (last_read_timestamp DESC);
+
+        CREATE TABLE IF NOT EXISTS ${LIBRARY_TABLE} (
+          book_id TEXT PRIMARY KEY NOT NULL,
+          file_uri TEXT NOT NULL,
+          title TEXT NOT NULL,
+          author TEXT NOT NULL,
+          file_size_bytes INTEGER NOT NULL,
+          cover_uri TEXT,
+          added_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_${LIBRARY_TABLE}_added
+          ON ${LIBRARY_TABLE} (added_at DESC);
       `);
       return database;
     } catch (error) {
@@ -189,18 +203,161 @@ export class StorageService {
     }
   }
 
+  /** Алиас для {@link upsertLibraryBook} — добавление/обновление записи о книге. */
+  async addBook(row: LibraryBookRecord): Promise<void> {
+    await this.upsertLibraryBook(row);
+  }
+
+  async upsertLibraryBook(row: LibraryBookRecord): Promise<void> {
+    assertNonEmptyBookId(row.bookId);
+    const database = await this.getDatabase();
+    const statement = await database.prepareAsync(`
+      INSERT INTO ${LIBRARY_TABLE} (
+        book_id,
+        file_uri,
+        title,
+        author,
+        file_size_bytes,
+        cover_uri,
+        added_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(book_id) DO UPDATE SET
+        file_uri = excluded.file_uri,
+        title = excluded.title,
+        author = excluded.author,
+        file_size_bytes = excluded.file_size_bytes,
+        cover_uri = excluded.cover_uri,
+        added_at = excluded.added_at;
+    `);
+    try {
+      await statement.executeAsync([
+        row.bookId,
+        row.fileUri,
+        row.title,
+        row.author,
+        Math.max(0, Math.trunc(row.fileSizeBytes)),
+        row.coverUri,
+        Math.trunc(row.addedAt),
+      ]);
+    } catch (error) {
+      throw wrapOperationFailure('сохранение книги в библиотеку', error);
+    } finally {
+      await statement.finalizeAsync();
+    }
+  }
+
+  async listLibraryBooks(): Promise<LibraryBookRecord[]> {
+    const database = await this.getDatabase();
+    const statement = await database.prepareAsync(`
+      SELECT
+        book_id AS bookId,
+        file_uri AS fileUri,
+        title AS title,
+        author AS author,
+        file_size_bytes AS fileSizeBytes,
+        cover_uri AS coverUri,
+        added_at AS addedAt
+      FROM ${LIBRARY_TABLE}
+      ORDER BY added_at DESC;
+    `);
+    try {
+      const result = await statement.executeAsync<LibraryBookRecord>();
+      return await result.getAllAsync();
+    } catch (error) {
+      throw wrapOperationFailure('список книг библиотеки', error);
+    } finally {
+      await statement.finalizeAsync();
+    }
+  }
+
+  async getLibraryBook(bookId: string): Promise<LibraryBookRecord | null> {
+    assertNonEmptyBookId(bookId);
+    const database = await this.getDatabase();
+    const statement = await database.prepareAsync(`
+      SELECT
+        book_id AS bookId,
+        file_uri AS fileUri,
+        title AS title,
+        author AS author,
+        file_size_bytes AS fileSizeBytes,
+        cover_uri AS coverUri,
+        added_at AS addedAt
+      FROM ${LIBRARY_TABLE}
+      WHERE book_id = ?
+      LIMIT 1;
+    `);
+    try {
+      const result = await statement.executeAsync<LibraryBookRecord>([bookId]);
+      const row = await result.getFirstAsync();
+      return row ?? null;
+    } catch (error) {
+      throw wrapOperationFailure('чтение записи книги', error);
+    } finally {
+      await statement.finalizeAsync();
+    }
+  }
+
+  /**
+   * Количество книг в локальной библиотеке.
+   */
+  async countLibraryBooks(): Promise<number> {
+    const database = await this.getDatabase();
+    const statement = await database.prepareAsync(`
+      SELECT COUNT(*) AS cnt FROM ${LIBRARY_TABLE};
+    `);
+    try {
+      const result = await statement.executeAsync<{ cnt: number }>();
+      const row = await result.getFirstAsync();
+      const raw = row?.cnt;
+      const n = typeof raw === 'number' ? raw : Number(raw);
+      return Number.isFinite(n) ? n : 0;
+    } catch (error) {
+      throw wrapOperationFailure('подсчёт книг в библиотеке', error);
+    } finally {
+      await statement.finalizeAsync();
+    }
+  }
+
+  /**
+   * Количество книг, для которых уже есть запись прогресса (то есть книга хотя бы раз открывалась).
+   */
+  async countBooksWithProgress(): Promise<number> {
+    const database = await this.getDatabase();
+    const statement = await database.prepareAsync(`
+      SELECT COUNT(*) AS cnt FROM ${TABLE_NAME};
+    `);
+    try {
+      const result = await statement.executeAsync<{ cnt: number }>();
+      const row = await result.getFirstAsync();
+      const raw = row?.cnt;
+      const n = typeof raw === 'number' ? raw : Number(raw);
+      return Number.isFinite(n) ? n : 0;
+    } catch (error) {
+      throw wrapOperationFailure('подсчёт книг в хранилище', error);
+    } finally {
+      await statement.finalizeAsync();
+    }
+  }
+
   /**
    * Removes all persisted reading positions (used by maintenance / «Эксплуатация» flows).
    */
   async clearAllData(): Promise<void> {
     const database = await this.getDatabase();
-    const statement = await database.prepareAsync(`DELETE FROM ${TABLE_NAME};`);
+    const progressStatement = await database.prepareAsync(
+      `DELETE FROM ${TABLE_NAME};`
+    );
+    const libraryStatement = await database.prepareAsync(
+      `DELETE FROM ${LIBRARY_TABLE};`
+    );
     try {
-      await statement.executeAsync();
+      await progressStatement.executeAsync();
+      await libraryStatement.executeAsync();
     } catch (error) {
       throw wrapOperationFailure('очистка данных чтения', error);
     } finally {
-      await statement.finalizeAsync();
+      await progressStatement.finalizeAsync();
+      await libraryStatement.finalizeAsync();
     }
   }
 }

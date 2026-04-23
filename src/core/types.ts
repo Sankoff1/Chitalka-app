@@ -8,3 +8,14 @@ export interface ReadingProgress {
   scrollOffset: number;
   lastReadTimestamp: number;
 }
+
+/** Запись о книге в локальной библиотеке (SQLite). */
+export interface LibraryBookRecord {
+  bookId: string;
+  fileUri: string;
+  title: string;
+  author: string;
+  fileSizeBytes: number;
+  coverUri: string | null;
+  addedAt: number;
+}

@@ -96,6 +96,11 @@ export function ReaderView({
         scrollEnabled
         showsVerticalScrollIndicator
         setSupportMultipleWindows={false}
+        domStorageEnabled
+        allowFileAccess
+        allowFileAccessFromFileURLs={true}
+        allowUniversalAccessFromFileURLs
+        mixedContentMode="compatibility"
       />
     </View>
   );

@@ -7,15 +7,28 @@ import {
   View,
 } from 'react-native';
 
-import { EpubService, EpubServiceError, type EpubSpineItem } from '../api/EpubService';
+import * as FileSystem from 'expo-file-system/legacy';
+
+import {
+  EPUB_EMPTY_SPINE,
+  EPUB_ERR_TIMEOUT_COPY,
+  EPUB_ERR_TIMEOUT_PREPARE_CHAPTER,
+  EPUB_ERR_TIMEOUT_UNZIP,
+  EpubService,
+  EpubServiceError,
+  type EpubSpineItem,
+} from '../api/EpubService';
 import { ReaderView } from '../components/ReaderView';
 import { StorageService } from '../database/StorageService';
+import { useI18n } from '../i18n';
 
 export type ReaderScreenProps = {
   bookPath: string;
   bookId: string;
   /** Закрыть книгу и вернуться на экран библиотеки. */
   onBackToLibrary?: () => void;
+  /** Вызывается после первого успешного открытия книги и сохранения прогресса. */
+  onOpened?: () => void;
 };
 
 function clampChapterIndex(index: number, spineLength: number): number {
@@ -25,17 +38,38 @@ function clampChapterIndex(index: number, spineLength: number): number {
   return Math.min(Math.max(0, Math.floor(index)), spineLength - 1);
 }
 
-function errorMessage(error: unknown): string {
+function errorMessage(
+  error: unknown,
+  t: (path: string, vars?: Record<string, string | number>) => string
+): string {
   if (error instanceof EpubServiceError) {
-    return error.message;
+    if (error.message === EPUB_EMPTY_SPINE) {
+      return t('reader.errors.emptySpine');
+    }
+    if (error.message === EPUB_ERR_TIMEOUT_COPY) {
+      return t('reader.errors.timeoutCopy');
+    }
+    if (error.message === EPUB_ERR_TIMEOUT_UNZIP) {
+      return t('reader.errors.timeoutUnzip');
+    }
+    if (error.message === EPUB_ERR_TIMEOUT_PREPARE_CHAPTER) {
+      return t('reader.errors.timeoutPrepareChapter');
+    }
+    return error.message.trim() ? error.message : t('reader.errors.openFailed');
   }
   if (error instanceof Error) {
     return error.message;
   }
-  return 'Произошла неизвестная ошибка при открытии книги.';
+  return t('reader.errors.unknown');
 }
 
-export function ReaderScreen({ bookPath, bookId, onBackToLibrary }: ReaderScreenProps) {
+export function ReaderScreen({
+  bookPath,
+  bookId,
+  onBackToLibrary,
+  onOpened,
+}: ReaderScreenProps) {
+  const { t } = useI18n();
   const storage = useMemo(() => new StorageService(), []);
 
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -50,6 +84,8 @@ export function ReaderScreen({ bookPath, bookId, onBackToLibrary }: ReaderScreen
   const epubRef = useRef<EpubService | null>(null);
   const latestScrollRef = useRef(0);
   const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onOpenedRef = useRef(onOpened);
+  onOpenedRef.current = onOpened;
 
   const persistProgress = useCallback(
     async (index: number, scrollY: number) => {
@@ -112,7 +148,7 @@ export function ReaderScreen({ bookPath, bookId, onBackToLibrary }: ReaderScreen
         }
 
         if (!structure.spine.length) {
-          throw new EpubServiceError('В книге нет ни одной главы (spine пуст).');
+          throw new EpubServiceError(EPUB_EMPTY_SPINE);
         }
 
         setSpine(structure.spine);
@@ -146,6 +182,7 @@ export function ReaderScreen({ bookPath, bookId, onBackToLibrary }: ReaderScreen
             scrollOffset: latestScrollRef.current,
             lastReadTimestamp: Date.now(),
           });
+          onOpenedRef.current?.();
         } catch {
           /* автосохранение не должно ломать открытие */
         }
@@ -154,7 +191,7 @@ export function ReaderScreen({ bookPath, bookId, onBackToLibrary }: ReaderScreen
           epubRef.current?.destroy();
           epubRef.current = null;
           setPhase('error');
-          setErrorText(errorMessage(e));
+          setErrorText(errorMessage(e, t));
         }
       }
     };
@@ -166,7 +203,7 @@ export function ReaderScreen({ bookPath, bookId, onBackToLibrary }: ReaderScreen
       epubRef.current?.destroy();
       epubRef.current = null;
     };
-  }, [bookPath, bookId, storage]);
+  }, [bookPath, bookId, storage, t]);
 
   const goChapter = useCallback(
     async (nextIndex: number) => {
@@ -193,10 +230,10 @@ export function ReaderScreen({ bookPath, bookId, onBackToLibrary }: ReaderScreen
         void persistProgress(clamped, 0);
       } catch (e) {
         setPhase('error');
-        setErrorText(errorMessage(e));
+        setErrorText(errorMessage(e, t));
       }
     },
-    [chapterIndex, persistProgress, phase, spine.length]
+    [chapterIndex, persistProgress, phase, spine.length, t]
   );
 
   const onBack = useCallback(() => {
@@ -218,14 +255,14 @@ export function ReaderScreen({ bookPath, bookId, onBackToLibrary }: ReaderScreen
   if (phase === 'error' && errorText) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorTitle}>Не удалось открыть книгу</Text>
+        <Text style={styles.errorTitle}>{t('reader.errorTitle')}</Text>
         <Text style={styles.errorBody}>{errorText}</Text>
         {onBackToLibrary ? (
           <Pressable
             onPress={onBackToLibrary}
             style={({ pressed }) => [styles.errorBack, pressed && styles.errorBackPressed]}
           >
-            <Text style={styles.errorBackText}>В библиотеку</Text>
+            <Text style={styles.errorBackText}>{t('reader.backToBooks')}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -234,6 +271,22 @@ export function ReaderScreen({ bookPath, bookId, onBackToLibrary }: ReaderScreen
 
   const canBack = chapterIndex > 0;
   const canForward = spine.length > 0 && chapterIndex < spine.length - 1;
+
+  /** Корень распакованной книги всегда под `documentDirectory`; WebView резолвит ресурсы от этого `file://` baseUrl. */
+  const webViewBaseUrl = useMemo(() => {
+    if (!unpackedRootUri) {
+      return '';
+    }
+    const u = unpackedRootUri.endsWith('/') ? unpackedRootUri : `${unpackedRootUri}/`;
+    const doc = FileSystem.documentDirectory;
+    if (doc) {
+      const prefix = doc.endsWith('/') ? doc : `${doc}/`;
+      if (!u.startsWith(prefix)) {
+        console.warn('[Chitalka][Reader] baseUrl не внутри documentDirectory', u.slice(0, 200));
+      }
+    }
+    return u;
+  }, [unpackedRootUri]);
 
   return (
     <View style={styles.root}>
@@ -248,7 +301,7 @@ export function ReaderScreen({ bookPath, bookId, onBackToLibrary }: ReaderScreen
               pressed && phase !== 'loading' && styles.libraryLinkPressed,
             ]}
           >
-            <Text style={styles.libraryLinkText}>← В библиотеку</Text>
+            <Text style={styles.libraryLinkText}>{t('reader.backToLibrary')}</Text>
           </Pressable>
         </View>
       ) : null}
@@ -262,10 +315,15 @@ export function ReaderScreen({ bookPath, bookId, onBackToLibrary }: ReaderScreen
             pressed && canBack && phase === 'ready' && styles.navButtonPressed,
           ]}
         >
-          <Text style={styles.navButtonText}>Назад</Text>
+          <Text style={styles.navButtonText}>{t('reader.back')}</Text>
         </Pressable>
         <Text style={styles.chapterHint} numberOfLines={1}>
-          {spine.length ? `Глава ${chapterIndex + 1} / ${spine.length}` : ''}
+          {spine.length
+            ? t('reader.chapterProgress', {
+                current: chapterIndex + 1,
+                total: spine.length,
+              })
+            : ''}
         </Text>
         <Pressable
           onPress={onForward}
@@ -276,22 +334,26 @@ export function ReaderScreen({ bookPath, bookId, onBackToLibrary }: ReaderScreen
             pressed && canForward && phase === 'ready' && styles.navButtonPressed,
           ]}
         >
-          <Text style={styles.navButtonText}>Вперед</Text>
+          <Text style={styles.navButtonText}>{t('reader.forward')}</Text>
         </Pressable>
       </View>
 
-      {phase === 'ready' && chapterHtml ? (
+      {phase === 'ready' && unpackedRootUri ? (
         <ReaderView
           chapterKey={`${bookId}-${chapterIndex}`}
-          html={chapterHtml}
-          baseUrl={unpackedRootUri.endsWith('/') ? unpackedRootUri : `${unpackedRootUri}/`}
+          html={
+            chapterHtml.trim().length > 0
+              ? chapterHtml
+              : '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body></body></html>'
+          }
+          baseUrl={webViewBaseUrl}
           initialScrollY={initialScrollY}
           onScrollOffsetChange={onScrollOffsetChange}
         />
       ) : (
         <View style={styles.loaderWrap}>
           <ActivityIndicator size="large" />
-          <Text style={styles.loaderText}>Загрузка книги…</Text>
+          <Text style={styles.loaderText}>{t('reader.loading')}</Text>
         </View>
       )}
     </View>

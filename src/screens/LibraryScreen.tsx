@@ -1,28 +1,24 @@
-import * as DocumentPicker from 'expo-document-picker';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
+import { useLibrary } from '../context/LibraryContext';
+import { useI18n } from '../i18n';
+import { pickEpubAsset } from '../utils/epubPicker';
+
 export type LibraryScreenProps = {
-  onBookSelected: (uri: string, bookId: string) => void;
+  onBookSelected: (uri: string, bookId: string) => void | Promise<void>;
 };
 
-function deriveBookId(fileName: string): string {
-  const base = fileName.replace(/^.*[/\\]/, '').trim();
-  const withoutExt = base.replace(/\.epub$/i, '').trim();
-  return withoutExt.length > 0 ? withoutExt : `book_${Date.now()}`;
-}
-
-function isEpubFileName(name: string): boolean {
-  return name.trim().toLowerCase().endsWith('.epub');
-}
-
 export function LibraryScreen({ onBookSelected }: LibraryScreenProps) {
+  const { t } = useI18n();
+  const { bumpLibraryEpoch, refreshBookCount } = useLibrary();
   const [busy, setBusy] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
 
@@ -30,36 +26,33 @@ export function LibraryScreen({ onBookSelected }: LibraryScreenProps) {
     setHint(null);
     setBusy(true);
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/epub+zip',
-        copyToCacheDirectory: true,
-        multiple: false,
+      const result = await pickEpubAsset();
+      if (result.kind === 'canceled') {
+        return;
+      }
+      if (result.kind === 'error') {
+        setHint(t(result.messageKey));
+        return;
+      }
+      console.log('[Chitalka][Импорт]', 'Файл выбран', {
+        bookId: result.bookId,
+        uriPreview: result.uri.slice(0, 72),
       });
-
-      if (result.canceled || !result.assets?.length) {
-        return;
-      }
-
-      const asset = result.assets[0];
-      if (!isEpubFileName(asset.name)) {
-        setHint('Выберите файл с расширением .epub.');
-        return;
-      }
-
-      onBookSelected(asset.uri, deriveBookId(asset.name));
-    } catch {
-      setHint('Не удалось открыть выбор файла. Попробуйте ещё раз.');
+      await Promise.resolve(onBookSelected(result.uri, result.bookId));
+      bumpLibraryEpoch();
+      await refreshBookCount();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      Alert.alert('', msg);
     } finally {
       setBusy(false);
     }
-  }, [onBookSelected]);
+  }, [bumpLibraryEpoch, onBookSelected, refreshBookCount, t]);
 
   return (
     <View style={styles.root}>
-      <Text style={styles.title}>Библиотека</Text>
-      <Text style={styles.subtitle}>
-        Откройте книгу в формате EPUB с устройства.
-      </Text>
+      <Text style={styles.title}>{t('libraryScreen.title')}</Text>
+      <Text style={styles.subtitle}>{t('libraryScreen.subtitle')}</Text>
 
       <Pressable
         onPress={pickEpub}
@@ -73,7 +66,7 @@ export function LibraryScreen({ onBookSelected }: LibraryScreenProps) {
         {busy ? (
           <ActivityIndicator color="#222" />
         ) : (
-          <Text style={styles.primaryButtonText}>Выбрать .epub</Text>
+          <Text style={styles.primaryButtonText}>{t('libraryScreen.pickEpub')}</Text>
         )}
       </Pressable>
 
