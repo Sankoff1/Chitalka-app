@@ -17,6 +17,9 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
+*.apk
+*.aab
+*.ipa
 
 # Metro
 .metro-health-check*
@@ -30,12 +33,21 @@ yarn-error.*
 .DS_Store
 *.pem
 
+# Windows
+Thumbs.db
+Desktop.ini
+
 # local env files
+.env
 .env*.local
+!.env.example
 
 # typescript
 *.tsbuildinfo
 
-# generated native folders
+# tests / coverage
+coverage/
+
+# generated native folders (regenerate with `npx expo prebuild`)
 /ios
 /android
