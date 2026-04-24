@@ -19,6 +19,13 @@
 
 Одна запись или `null`.
 
+## Дополнительные выборки и операции (тот же `StorageService`)
+
+В `src/database/StorageService.ts` также объявлены (для экранов библиотеки):
+
+- `listRecentlyReadBooks`, `listFavoriteBooks`, `listTrashedBooks` — JOIN с прогрессом где нужно, фильтр по `deleted_at`.
+- `setBookFavorite`, `setBookTotalChapters`, `moveBookToTrash`, `restoreBookFromTrash`, `purgeBook`.
+
 ## Связи
 
 - [`core-type-library-book-record.md`](./core-type-library-book-record.md).

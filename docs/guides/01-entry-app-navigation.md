@@ -110,10 +110,10 @@
 |--|--|
 | **Назначение** | Drawer-навигатор по разделам приложения; общий кастомный header. |
 | **Публичный API** | `export function AppDrawer()`. |
-| **Ключевое поведение** | `createDrawerNavigator<DrawerParamList>`; ширина ящика `min(288, windowWidth - 24)`; `screenOptions.header` = `AppTopBar`; цвета из `useTheme`, подписи из `useI18n`. Экраны: ReadingNow, BooksAndDocs, Favorites, Authors, Collections, Cart, DebugLogs, Settings (часть — плейсхолдеры). |
+| **Ключевое поведение** | `createDrawerNavigator<DrawerParamList>`; ширина ящика `min(288, windowWidth - 24)`; `screenOptions.header` = `AppTopBar`; цвета из `useTheme`, подписи из `useI18n`. Экраны: `ReadingNow`, `BooksAndDocs`, `Favorites`, `Cart` (корзина → `TrashScreen`), `DebugLogs`, `Settings` — все из `src/screens/`. |
 | **Зависимости внутрь** | `@react-navigation/drawer`, экраны из `../screens/*`, `../components/AppTopBar`, `../i18n`, `../theme`, `./types`. |
 | **Наружу** | Единственный child-экран `Main` в `RootStack`. |
-| **Подводные камни** | Локальные обёртки экранов (ReadingNow и т.д.) объявлены в файле; при смене маршрутов синхронизировать `DrawerParamList` и список `Drawer.Screen`. |
+| **Подводные камни** | Имя маршрута `Cart` не совпадает с UI-лейблом «корзина»; при смене маршрутов синхронизировать `DrawerParamList` и список `Drawer.Screen`. |
 
 ---
 

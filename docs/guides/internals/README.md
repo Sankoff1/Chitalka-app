@@ -81,7 +81,7 @@
 | [navigation-ref-navigate-to-reader.md](./navigation-ref-navigate-to-reader.md) | `navigateToReader`, цикл повторов |
 | [navigation-root-stack.md](./navigation-root-stack.md) | `RootStack` |
 | [navigation-app-drawer-shell.md](./navigation-app-drawer-shell.md) | `AppDrawer`: ширина, `screenOptions`, экраны |
-| [navigation-app-drawer-placeholders.md](./navigation-app-drawer-placeholders.md) | Встроенные `ReadingNowScreen`, `FavoritesScreen`, … |
+| [navigation-app-drawer-placeholders.md](./navigation-app-drawer-placeholders.md) | Состав drawer: маршруты и файлы экранов (`ReadingNow`, `BooksAndDocs`, …) |
 | [navigation-reader-wrapper.md](./navigation-reader-wrapper.md) | `ReaderScreenWrapper` |
 | [navigation-app-top-bar.md](./navigation-app-top-bar.md) | `AppTopBar` |
 
@@ -97,15 +97,16 @@
 | [library-context-open-books-search.md](./library-context-open-books-search.md) | `openBooksForSearch` |
 | [library-context-debug-autoload-effect.md](./library-context-debug-autoload-effect.md) | `useEffect` с `runDebugAutoLoadEpubIfNeeded` |
 
-### `ui-reader-view` / `ui-book-card` / `ui-first-launch`
+### `ui-reader-view` / `ui-book-card` / `ui-book-actions-sheet` / `ui-first-launch`
 
 | Файл | Внутренняя единица |
 |------|-------------------|
-| [ui-reader-view-webview-lifecycle.md](./ui-reader-view-webview-lifecycle.md) | `key={chapterKey}`, `source`, security props |
+| [ui-reader-view-webview-lifecycle.md](./ui-reader-view-webview-lifecycle.md) | `key={chapterKey}`, `source`, security props, Android layer |
 | [ui-reader-view-injected-scroll-bridge.md](./ui-reader-view-injected-scroll-bridge.md) | Строка `injectedScrollBridge` |
-| [ui-reader-view-message-and-debounce.md](./ui-reader-view-message-and-debounce.md) | `onMessage`, debounce 350 ms |
-| [ui-reader-view-initial-scroll.md](./ui-reader-view-initial-scroll.md) | `applyInitialScroll`, `onLoadEnd` |
+| [ui-reader-view-message-and-debounce.md](./ui-reader-view-message-and-debounce.md) | `onMessage`, debounce 350 ms, `page`/`ready` |
+| [ui-reader-view-initial-scroll.md](./ui-reader-view-initial-scroll.md) | `onLoadEnd`, инжект скролла + rAF + `ready` |
 | [ui-book-card.md](./ui-book-card.md) | Разметка и стили карточки |
+| [ui-book-actions-sheet.md](./ui-book-actions-sheet.md) | Нижний лист действий с книгой |
 | [ui-first-launch-modal.md](./ui-first-launch-modal.md) | Модалка первого запуска |
 
 ### Экраны (`screen-*`)
@@ -120,8 +121,10 @@
 | [screen-books-and-docs.md](./screen-books-and-docs.md) | `BooksAndDocsScreen`: список, epoch, FAB |
 | [screen-settings.md](./screen-settings.md) | `SettingsScreen` |
 | [screen-debug-logs.md](./screen-debug-logs.md) | `DebugLogsScreen` |
-| [screen-placeholder.md](./screen-placeholder.md) | `PlaceholderScreen` |
 | [screen-library-legacy.md](./screen-library-legacy.md) | `LibraryScreen` (не в drawer) |
+| [screen-placeholder.md](./screen-placeholder.md) | Архив: `PlaceholderScreen` удалён из кода |
+
+Экраны **`ReadingNowScreen`**, **`FavoritesScreen`**, **`TrashScreen`** зафиксированы в [`MODULES.md`](../../MODULES.md) как `screen-reading-now`, `screen-favorites`, `screen-trash`; при необходимости добавьте для них отдельные карточки `screen-*-*.md` по шаблону соседних файлов.
 
 ### `i18n-*`
 

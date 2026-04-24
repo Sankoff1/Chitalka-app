@@ -1,16 +1,25 @@
-# Внутренняя единица: встроенные экраны-заглушки в drawer
+# Внутренняя единица: состав экранов `AppDrawer`
 
 **Родительский модуль:** `nav-drawer`  
 **Файл кода:** `src/navigation/AppDrawer.tsx`
 
-## Компоненты
+## Экраны
 
-Локальные функции-экраны: `ReadingNowScreen`, `FavoritesScreen`, `AuthorsScreen`, `CollectionsScreen`, `CartScreen` — каждый рендерит [`screen-placeholder.md`](./screen-placeholder.md) с заголовком/подзаголовком из `t('screens.*')`.
+Все пункты drawer подключены **отдельными файлами** из `src/screens/` (без inline-заглушек):
 
-## Исключение
+| Маршрут (`DrawerParamList`) | Компонент | Подписи drawer |
+|-----------------------------|-----------|----------------|
+| `ReadingNow` | `ReadingNowScreen` | `drawer.readingNow` |
+| `BooksAndDocs` | `BooksAndDocsScreen` | `drawer.books` |
+| `Favorites` | `FavoritesScreen` | `drawer.favorites` |
+| `Cart` | `TrashScreen` | `drawer.cart` |
+| `DebugLogs` | `DebugLogsScreen` | `drawer.debugLogs` |
+| `Settings` | `SettingsScreen` | `drawer.settings` |
 
-`BooksAndDocs`, `DebugLogs`, `Settings` — полноценные экраны из `src/screens/`.
+## Каркас
+
+Ширина drawer, `screenOptions`, кастомный header — в [`navigation-app-drawer-shell.md`](./navigation-app-drawer-shell.md).
 
 ## Риски для агентов
 
-Не путать с отдельными файлами в `screens/` — логика объявлена inline в `AppDrawer.tsx`.
+Имя маршрута `Cart` исторически; в UI это корзина удалённых книг (`TrashScreen`), не корзина покупок.

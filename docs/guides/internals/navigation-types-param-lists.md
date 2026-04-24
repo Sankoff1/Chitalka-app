@@ -5,7 +5,7 @@
 
 ## `DrawerParamList`
 
-Имена экранов drawer без параметров (`undefined`).
+Имена экранов drawer без параметров (`undefined`): `ReadingNow`, `BooksAndDocs`, `Favorites`, `Cart`, `DebugLogs`, `Settings`. Маршрут `Cart` ведёт на `TrashScreen` (корзина удалённых книг).
 
 ## `RootStackParamList`
 

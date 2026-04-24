@@ -82,10 +82,10 @@
 
 Ожидается **строка с JSON**. После `JSON.parse`:
 
-- Допустимый payload: `{ "t": "scroll", "y": number }`, где `y` конечное число.
+- `{ "t": "scroll", "y": number }` — скролл; `y` конечное число → `onScrollOffsetChange(y)` с **debounce ~350 ms** на стороне RN (внутри страницы — throttling перед `postMessage`).
+- `{ "t": "page", "dir": "prev" | "next" }` — запрос соседней главы → опциональный `onRequestPageChange(direction)` (тап по краям / горизонтальный свайп в инжекте).
+- `{ "t": "ready" }` — после применения начального скролла → опциональный `onContentReady()`.
 - Иначе сообщение игнорируется; при невалидном JSON — тихий `catch`.
-
-После валидного `scroll` вызывается `onScrollOffsetChange(y)` с **дополнительным debounce 350 ms** на стороне RN (внутри scroll в странице — throttling ~200 ms перед `postMessage`).
 
 ### Исходящее в страницу
 
@@ -94,7 +94,7 @@
 ### Прочее
 
 - `key={chapterKey}` на `WebView` — полный сброс при смене главы.
-- `onLoadEnd` → `injectJavaScript` с `window.scrollTo(0, initialScrollY)`.
+- `onLoadEnd` → начальный `scrollTo`, затем **два `requestAnimationFrame`** перед отправкой `ready` в RN, чтобы не ловить гонку с отрисовкой.
 - `source={{ html, baseUrl }}`; флаги доступа к файлам включены для локальных ресурсов EPUB.
 
 ---
@@ -103,7 +103,7 @@
 
 ### `BookCard`
 
-Презентационная карточка: обложка или эмодзи-заглушка, заголовок, автор, размер в МБ + `t('common.mb')`. Зависимости: `useTheme`, `useI18n`, колбэк `onPress`.
+Презентационная карточка: обложка **или** компактный fallback-блок на обложке (заголовок/автор, акцентная полоса); под обложкой — заголовок и автор; опционально полоса прогресса (`progress` 0..1, подпись `books.readPercent`), бейдж избранного (`isFavorite`), `onLongPress`. Зависимости: `useTheme`, `useI18n`, `onPress`.
 
 ### `FirstLaunchModal`
 
@@ -111,19 +111,19 @@
 
 ---
 
-## Эраны: роль, действия, зависимости
+## Экраны: роль, действия, зависимости
 
 ### `BooksAndDocsScreen`
 
-- **Роль:** основной список книг библиотеки (drawer «Книги» / `BooksAndDocs`).
-- **Действия:** `FlatList` + `BookCard` → открытие `navigateToReader`; FAB «+» → `pickEpubFromToolbar` из `useLibrary`.
-- **Зависимости:** `useLibrary` (`pickEpubFromToolbar`, `libraryEpoch`), `StorageService.listLibraryBooks`, `useFocusEffect` для перезагрузки при фокусе, `useTheme`, `useI18n`, safe area.
+- **Роль:** основной список **активных** книг библиотеки (drawer «Книги» / `BooksAndDocs`).
+- **Действия:** `FlatList` + `BookCard` (прогресс, избранное) → открытие `navigateToReader`; долгое нажатие → `BookActionsSheet` (избранное / в корзину через `StorageService`); FAB «+» → `pickEpubFromToolbar` из `useLibrary`.
+- **Зависимости:** `useLibrary` (`pickEpubFromToolbar`, `libraryEpoch`, `bumpLibraryEpoch`, `refreshBookCount`), `StorageService` (`listLibraryBooks` и операции избранного/корзины), `useFocusEffect`, `useTheme`, `useI18n`, safe area.
 
 ### `ReaderScreen` (через wrapper)
 
-- **Роль:** чтение одной книги по `bookPath` / `bookId`: навигация по spine, WebView, автосохранение.
-- **Действия:** «Назад к библиотеке» (если передан колбэк), предыдущая/следующая глава, скролл.
-- **Зависимости:** `EpubService`, `StorageService`, `ReaderView`, `expo-file-system/legacy` для проверки `baseUrl`, `useI18n`.
+- **Роль:** чтение одной книги по `bookPath` / `bookId`: навигация по spine, автосохранение.
+- **Действия:** «Назад к библиотеке» (если передан колбэк), предыдущая/следующая глава (в т.ч. из жестов `ReaderView` через `onRequestPageChange` **только на активном слое**). Смена главы: два логических слоя `ReaderView` (`a`/`b`) — подготовка HTML на неактивном слое, ожидание `onContentReady`, затем анимация смены (`Animated.timing`, opacity/translate, ~500 ms), переключение активного слоя.
+- **Зависимости:** `EpubService`, `StorageService`, два экземпляра `ReaderView`, `Animated` из `react-native`, `expo-file-system/legacy` для проверки `baseUrl`, `useI18n`.
 
 ### `SettingsScreen`
 
@@ -137,11 +137,23 @@
 - **Действия:** очистка, экспорт в файл в cache + `Sharing.shareAsync` (или путь в Alert, если шаринг недоступен).
 - **Зависимости:** `debugLogSubscribe`, `expo-file-system/legacy`, `expo-sharing`, `useTheme`, `useI18n`, safe area.
 
-### `PlaceholderScreen`
+### `ReadingNowScreen`
 
-- **Роль:** заглушка с заголовком и опциональным подзаголовком.
-- **Действия:** нет (только отображение).
-- **Зависимости:** `useTheme`. Используется в `AppDrawer` для пунктов «Сейчас читаю», «Избранное», «Авторы», «Подборки», «Корзина» — отдельные локальные обёртки передают `t('screens.*')`.
+- **Роль:** список недавно читаемых (`listRecentlyReadBooks`).
+- **Действия:** `BookCard` с прогрессом → `navigateToReader`; long press → `BookActionsSheet` (избранное, корзина); реакция на `libraryEpoch`.
+- **Зависимости:** `StorageService`, `useLibrary`, `BookActionsSheet`, `useTheme`, `useI18n`, safe area.
+
+### `FavoritesScreen`
+
+- **Роль:** книги с `isFavorite`.
+- **Действия:** список, открытие читалки; long press → `BookActionsSheet` (снять избранное, в корзину с `refreshBookCount`).
+- **Зависимости:** `StorageService`, `useLibrary`, `BookActionsSheet`, `useTheme`, `useI18n`, safe area.
+
+### `TrashScreen` (маршрут drawer `Cart`)
+
+- **Роль:** soft-deleted книги (`listTrashedBooks`).
+- **Действия:** восстановление (`restoreBookFromTrash`), окончательное удаление (`purgeBook` + файлы через `expo-file-system/legacy`).
+- **Зависимости:** `StorageService`, `useLibrary` (`libraryEpoch`, `bumpLibraryEpoch`, `refreshBookCount`), `useTheme`, `useI18n`, `Alert`, safe area.
 
 ### `LibraryScreen`
 

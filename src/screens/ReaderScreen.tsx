@@ -35,6 +35,15 @@ export type ReaderScreenProps = {
   onOpened?: () => void;
 };
 
+type ReaderLayerId = 'a' | 'b';
+
+type ReaderLayerState = {
+  chapterIndex: number;
+  html: string;
+  initialScrollY: number;
+  token: string;
+};
+
 function clampChapterIndex(index: number, spineLength: number): number {
   if (spineLength <= 0) {
     return 0;
@@ -77,23 +86,39 @@ export function ReaderScreen({
   const storage = useMemo(() => new StorageService(), []);
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
-  const pageAnim = useRef(new Animated.Value(0)).current;
+  const transitionAnim = useRef(new Animated.Value(0)).current;
   const flippingRef = useRef(false);
+  const pendingReadyResolverRef = useRef<((layerId: ReaderLayerId) => void) | null>(null);
+  const pendingReadyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const transitionResetFrameRef = useRef<number | null>(null);
 
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading');
   const [errorText, setErrorText] = useState<string | null>(null);
 
   const [spine, setSpine] = useState<EpubSpineItem[]>([]);
   const [unpackedRootUri, setUnpackedRootUri] = useState('');
-  const [chapterIndex, setChapterIndex] = useState(0);
-  const [chapterHtml, setChapterHtml] = useState('');
-  const [initialScrollY, setInitialScrollY] = useState(0);
+  const [layerA, setLayerA] = useState<ReaderLayerState | null>(null);
+  const [layerB, setLayerB] = useState<ReaderLayerState | null>(null);
+  const [activeLayerId, setActiveLayerId] = useState<ReaderLayerId>('a');
+  const [transitionTargetLayerId, setTransitionTargetLayerId] = useState<ReaderLayerId | null>(null);
+  const [transitionDirection, setTransitionDirection] = useState<1 | -1>(1);
 
   const epubRef = useRef<EpubService | null>(null);
   const latestScrollRef = useRef(0);
   const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onOpenedRef = useRef(onOpened);
   onOpenedRef.current = onOpened;
+  const activeLayer = activeLayerId === 'a' ? layerA : layerB;
+  const inactiveLayerId: ReaderLayerId = activeLayerId === 'a' ? 'b' : 'a';
+  const incomingLayer = transitionTargetLayerId
+    ? transitionTargetLayerId === 'a'
+      ? layerA
+      : layerB
+    : null;
+  const activeLayerRef = useRef<ReaderLayerState | null>(null);
+  activeLayerRef.current = activeLayer;
+  const inactiveLayerIdRef = useRef<ReaderLayerId>(inactiveLayerId);
+  inactiveLayerIdRef.current = inactiveLayerId;
 
   const persistProgress = useCallback(
     async (index: number, scrollY: number) => {
@@ -125,13 +150,72 @@ export function ReaderScreen({
     [persistProgress]
   );
 
+  const clearPendingReadyWait = useCallback(() => {
+    if (pendingReadyTimerRef.current) {
+      clearTimeout(pendingReadyTimerRef.current);
+      pendingReadyTimerRef.current = null;
+    }
+  }, []);
+
+  const clearTransitionResetFrame = useCallback(() => {
+    if (transitionResetFrameRef.current != null) {
+      cancelAnimationFrame(transitionResetFrameRef.current);
+      transitionResetFrameRef.current = null;
+    }
+  }, []);
+
+  const resetTransitionAfterCommit = useCallback(() => {
+    clearTransitionResetFrame();
+    transitionResetFrameRef.current = requestAnimationFrame(() => {
+      transitionResetFrameRef.current = null;
+      transitionAnim.setValue(0);
+    });
+  }, [clearTransitionResetFrame, transitionAnim]);
+
+  const handleLayerReady = useCallback(
+    (layerId: ReaderLayerId) => {
+      const resolve = pendingReadyResolverRef.current;
+      if (!resolve) {
+        return;
+      }
+      resolve(layerId);
+      if (pendingReadyResolverRef.current == null) {
+        clearPendingReadyWait();
+      }
+    },
+    [clearPendingReadyWait]
+  );
+
+  const waitForPendingLayer = useCallback(
+    (targetLayerId: ReaderLayerId) =>
+      new Promise<void>((resolve) => {
+        clearPendingReadyWait();
+        pendingReadyResolverRef.current = (loadedLayerId) => {
+          if (loadedLayerId !== targetLayerId) {
+            return;
+          }
+          pendingReadyResolverRef.current = null;
+          clearPendingReadyWait();
+          resolve();
+        };
+        pendingReadyTimerRef.current = setTimeout(() => {
+          const done = pendingReadyResolverRef.current;
+          done?.(targetLayerId);
+        }, 400);
+      }),
+    [clearPendingReadyWait]
+  );
+
   useEffect(
     () => () => {
       if (scrollSaveTimer.current) {
         clearTimeout(scrollSaveTimer.current);
       }
+      pendingReadyResolverRef.current = null;
+      clearPendingReadyWait();
+      clearTransitionResetFrame();
     },
-    []
+    [clearPendingReadyWait, clearTransitionResetFrame]
   );
 
   useEffect(() => {
@@ -141,8 +225,17 @@ export function ReaderScreen({
       setPhase('loading');
       setErrorText(null);
       setSpine([]);
-      setChapterHtml('');
       setUnpackedRootUri('');
+      setLayerA(null);
+      setLayerB(null);
+      setActiveLayerId('a');
+      setTransitionTargetLayerId(null);
+      setTransitionDirection(1);
+      clearTransitionResetFrame();
+      transitionAnim.setValue(0);
+      flippingRef.current = false;
+      pendingReadyResolverRef.current = null;
+      clearPendingReadyWait();
 
       epubRef.current?.destroy();
       epubRef.current = new EpubService(bookPath);
@@ -184,9 +277,15 @@ export function ReaderScreen({
         }
 
         latestScrollRef.current = Number.isFinite(scroll) ? scroll : 0;
-        setChapterIndex(savedIndex);
-        setInitialScrollY(latestScrollRef.current);
-        setChapterHtml(html);
+        setLayerA({
+          chapterIndex: savedIndex,
+          html,
+          initialScrollY: latestScrollRef.current,
+          token: `${bookId}-${savedIndex}-${Date.now()}`,
+        });
+        setLayerB(null);
+        setActiveLayerId('a');
+        setTransitionTargetLayerId(null);
         setPhase('ready');
 
         try {
@@ -214,78 +313,117 @@ export function ReaderScreen({
 
     return () => {
       cancelled = true;
+      pendingReadyResolverRef.current = null;
+      clearPendingReadyWait();
+      clearTransitionResetFrame();
       epubRef.current?.destroy();
       epubRef.current = null;
     };
-  }, [bookPath, bookId, storage, t]);
+  }, [
+    bookPath,
+    bookId,
+    clearPendingReadyWait,
+    clearTransitionResetFrame,
+    storage,
+    t,
+    transitionAnim,
+  ]);
 
-  const runFlipAnim = useCallback(
-    (toValue: number, duration: number): Promise<void> =>
+  const runTransitionAnim = useCallback(
+    (duration: number): Promise<void> =>
       new Promise<void>((resolve) => {
-        Animated.timing(pageAnim, {
-          toValue,
+        Animated.timing(transitionAnim, {
+          toValue: 1,
           duration,
-          easing: Easing.out(Easing.cubic),
+          easing: Easing.inOut(Easing.cubic),
           useNativeDriver: true,
         }).start(() => resolve());
       }),
-    [pageAnim]
+    [transitionAnim]
   );
 
   const goChapter = useCallback(
     async (nextIndex: number) => {
       const epub = epubRef.current;
-      if (!epub || !spine.length || phase !== 'ready' || flippingRef.current) {
+      const currentLayer = activeLayerRef.current;
+      if (!epub || !spine.length || phase !== 'ready' || flippingRef.current || !currentLayer) {
         return;
       }
       const clamped = clampChapterIndex(nextIndex, spine.length);
-      if (clamped === chapterIndex) {
+      if (clamped === currentLayer.chapterIndex) {
         return;
       }
 
       flippingRef.current = true;
-      await persistProgress(chapterIndex, latestScrollRef.current);
-
-      const direction = clamped > chapterIndex ? 1 : -1;
-      const width = screenWidth || 360;
+      await persistProgress(currentLayer.chapterIndex, latestScrollRef.current);
 
       try {
-        const htmlPromise = epub.prepareChapter(epub.getSpineChapterUri(clamped));
-        await runFlipAnim(-direction * width, 200);
-        const html = await htmlPromise;
+        const html = await epub.prepareChapter(epub.getSpineChapterUri(clamped));
+        const targetLayerId = inactiveLayerIdRef.current;
+        const nextLayer: ReaderLayerState = {
+          chapterIndex: clamped,
+          html,
+          initialScrollY: 0,
+          token: `${bookId}-${clamped}-${Date.now()}`,
+        };
+        transitionAnim.setValue(0);
+        setTransitionDirection(clamped > currentLayer.chapterIndex ? 1 : -1);
+        setTransitionTargetLayerId(targetLayerId);
+        if (targetLayerId === 'a') {
+          setLayerA(nextLayer);
+        } else {
+          setLayerB(nextLayer);
+        }
+        await waitForPendingLayer(targetLayerId);
+        await runTransitionAnim(380);
 
         latestScrollRef.current = 0;
-        setChapterIndex(clamped);
-        setInitialScrollY(0);
-        setChapterHtml(html);
-        pageAnim.setValue(direction * width);
-
-        await runFlipAnim(0, 220);
+        setActiveLayerId(targetLayerId);
+        setTransitionTargetLayerId(null);
+        resetTransitionAfterCommit();
         void persistProgress(clamped, 0);
       } catch (e) {
-        pageAnim.setValue(0);
+        setTransitionTargetLayerId(null);
+        resetTransitionAfterCommit();
         setPhase('error');
         setErrorText(errorMessage(e, t));
       } finally {
+        pendingReadyResolverRef.current = null;
+        clearPendingReadyWait();
         flippingRef.current = false;
       }
     },
-    [chapterIndex, pageAnim, persistProgress, phase, runFlipAnim, screenWidth, spine.length, t]
+    [
+      clearPendingReadyWait,
+      bookId,
+      persistProgress,
+      phase,
+      resetTransitionAfterCommit,
+      runTransitionAnim,
+      spine.length,
+      t,
+      transitionAnim,
+      waitForPendingLayer,
+    ]
   );
 
   const onScrollOffsetChange = useCallback(
     (y: number) => {
       latestScrollRef.current = y;
-      scheduleScrollSave(chapterIndex, y);
+      const currentLayer = activeLayerRef.current;
+      if (currentLayer) {
+        scheduleScrollSave(currentLayer.chapterIndex, y);
+      }
     },
-    [chapterIndex, scheduleScrollSave]
+    [scheduleScrollSave]
   );
 
   const onRequestPageChange = useCallback(
     (direction: ReaderPageDirection) => {
-      void goChapter(chapterIndex + (direction === 'next' ? 1 : -1));
+      const currentChapterIndex = activeLayerRef.current?.chapterIndex ?? 0;
+      void goChapter(currentChapterIndex + (direction === 'next' ? 1 : -1));
     },
-    [chapterIndex, goChapter]
+    [goChapter]
   );
 
   /** Корень распакованной книги всегда под `documentDirectory`; WebView резолвит ресурсы от этого `file://` baseUrl. */
@@ -303,6 +441,112 @@ export function ReaderScreen({
     }
     return u;
   }, [unpackedRootUri]);
+
+  const isTransitioning =
+    transitionTargetLayerId != null && activeLayer != null && incomingLayer != null;
+  const transitionDistance = Math.max(screenWidth || 360, 1);
+  const activeTranslateX = transitionAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -transitionDirection * transitionDistance * 0.12],
+  });
+  /* Уходящая страница плавно гаснет до 0 — иначе финальный setActiveLayerId хлопает opacity 0.58 → 0. */
+  const activeOpacity = transitionAnim.interpolate({
+    inputRange: [0, 0.6, 1],
+    outputRange: [1, 0.25, 0],
+  });
+  const incomingTranslateX = transitionAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [transitionDirection * transitionDistance * 0.12, 0],
+  });
+  /* Держим новую страницу невидимой первые ~30% анимации: даём WebView
+     докрасить текст после сигнала ready, чтобы не было видимого «пересбора». */
+  const incomingOpacity = transitionAnim.interpolate({
+    inputRange: [0, 0.3, 1],
+    outputRange: [0, 0, 1],
+  });
+  const outgoingShadeOpacity = transitionAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.08],
+  });
+  const incomingShadeOpacity = transitionAnim.interpolate({
+    inputRange: [0, 0.3, 1],
+    outputRange: [0, 0.06, 0],
+  });
+  const emptyReaderHtml =
+    '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body></body></html>';
+  const currentChapterIndex = activeLayer?.chapterIndex ?? 0;
+
+  const renderReaderLayer = (layerId: ReaderLayerId, layer: ReaderLayerState | null) => {
+    if (!layer) {
+      return null;
+    }
+
+    const isActiveLayer = layerId === activeLayerId;
+    const isIncomingLayer = layerId === transitionTargetLayerId;
+    const isVisibleLayer = isActiveLayer || isIncomingLayer;
+    const layerHtml = layer.html.trim().length > 0 ? layer.html : emptyReaderHtml;
+    const layerAnimatedStyle = isTransitioning
+      ? isIncomingLayer
+        ? {
+            opacity: incomingOpacity,
+            transform: [{ translateX: incomingTranslateX }],
+          }
+        : isActiveLayer
+          ? {
+              opacity: activeOpacity,
+              transform: [{ translateX: activeTranslateX }],
+            }
+          : {
+              opacity: 0,
+              transform: [{ translateX: 0 }],
+            }
+      : isActiveLayer
+        ? {
+            opacity: 1,
+            transform: [{ translateX: 0 }],
+          }
+        : {
+            opacity: 0,
+            transform: [{ translateX: 0 }],
+          };
+
+    return (
+      <Animated.View
+        key={layerId}
+        pointerEvents={isActiveLayer && !isTransitioning ? 'auto' : 'none'}
+        renderToHardwareTextureAndroid={isTransitioning && isVisibleLayer}
+        shouldRasterizeIOS={isTransitioning && isVisibleLayer}
+        style={[
+          styles.pageLayer,
+          styles.pageLayerAbsolute,
+          isActiveLayer ? styles.pageLayerOutgoing : styles.pageLayerIncoming,
+          layerAnimatedStyle,
+        ]}
+      >
+        <ReaderView
+          chapterKey={layer.token}
+          html={layerHtml}
+          baseUrl={webViewBaseUrl}
+          initialScrollY={layer.initialScrollY}
+          onScrollOffsetChange={onScrollOffsetChange}
+          onRequestPageChange={onRequestPageChange}
+          onContentReady={() => handleLayerReady(layerId)}
+        />
+        {isTransitioning && isIncomingLayer ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.pageShade, { opacity: incomingShadeOpacity }]}
+          />
+        ) : null}
+        {isTransitioning && isActiveLayer ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.pageShade, { opacity: outgoingShadeOpacity }]}
+          />
+        ) : null}
+      </Animated.View>
+    );
+  };
 
   if (phase === 'error' && errorText) {
     return (
@@ -339,24 +583,10 @@ export function ReaderScreen({
         </View>
       ) : null}
 
-      {phase === 'ready' && unpackedRootUri ? (
+      {phase === 'ready' && unpackedRootUri && activeLayer ? (
         <View style={styles.pageHost}>
-          <Animated.View
-            style={[styles.pageLayer, { transform: [{ translateX: pageAnim }] }]}
-          >
-            <ReaderView
-              chapterKey={`${bookId}-${chapterIndex}`}
-              html={
-                chapterHtml.trim().length > 0
-                  ? chapterHtml
-                  : '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body></body></html>'
-              }
-              baseUrl={webViewBaseUrl}
-              initialScrollY={initialScrollY}
-              onScrollOffsetChange={onScrollOffsetChange}
-              onRequestPageChange={onRequestPageChange}
-            />
-          </Animated.View>
+          {renderReaderLayer('a', layerA)}
+          {renderReaderLayer('b', layerB)}
         </View>
       ) : (
         <View style={styles.loaderWrap}>
@@ -368,7 +598,7 @@ export function ReaderScreen({
       {phase === 'ready' && spine.length > 0 ? (
         <View style={[styles.pageIndicator, { paddingBottom: Math.max(insets.bottom, 8) }]}>
           <Text style={styles.pageIndicatorText}>
-            {chapterIndex + 1}/{spine.length}
+            {currentChapterIndex + 1}/{spine.length}
           </Text>
         </View>
       ) : null}
@@ -422,15 +652,29 @@ const styles = StyleSheet.create({
     flex: 1,
     overflow: 'hidden',
     backgroundColor: '#ece9e1',
+    position: 'relative',
   },
   pageLayer: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: '#fff',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.35,
     shadowRadius: 12,
     elevation: 12,
+  },
+  pageLayerAbsolute: {
+    position: 'absolute',
+  },
+  pageLayerIncoming: {
+    zIndex: 1,
+  },
+  pageLayerOutgoing: {
+    zIndex: 2,
+  },
+  pageShade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000',
   },
   loaderWrap: {
     flex: 1,

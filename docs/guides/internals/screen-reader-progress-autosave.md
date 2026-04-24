@@ -13,7 +13,7 @@ Debounce **500 ms** на запись после последнего скрол
 
 ## `onScrollOffsetChange`
 
-Обновляет `latestScrollRef` из [`ui-reader-view-message-and-debounce.md`](./ui-reader-view-message-and-debounce.md).
+Обновляет `latestScrollRef` из [`ui-reader-view-message-and-debounce.md`](./ui-reader-view-message-and-debounce.md); в `scheduleScrollSave` передаётся индекс **активного слоя** `activeLayer.chapterIndex` (а не отдельное поле состояния).
 
 ## Cleanup таймера скролла
 

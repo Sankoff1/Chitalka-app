@@ -3,7 +3,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BookActionsSheet } from '../components/BookActionsSheet';
 import { BookCard } from '../components/BookCard';
 import { useLibrary } from '../context/LibraryContext';
 import { useI18n } from '../i18n';
@@ -29,6 +29,8 @@ export function BooksAndDocsScreen() {
   const storage = useMemo(() => new StorageService(), []);
   const [books, setBooks] = useState<LibraryBookWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeBook, setActiveBook] =
+    useState<LibraryBookWithProgress | null>(null);
 
   const loadBooks = useCallback(async () => {
     setLoading(true);
@@ -58,42 +60,57 @@ export function BooksAndDocsScreen() {
     navigateToReader(item.fileUri, item.bookId);
   }, []);
 
-  const showBookActions = useCallback(
+  const toggleFavorite = useCallback(
     (item: LibraryBookWithProgress) => {
-      Alert.alert(t('bookActions.title'), item.title, [
-        {
-          text: item.isFavorite
-            ? t('bookActions.removeFromFavorites')
-            : t('bookActions.addToFavorites'),
-          onPress: () => {
-            void (async () => {
-              try {
-                await storage.setBookFavorite(item.bookId, !item.isFavorite);
-              } finally {
-                bumpLibraryEpoch();
-              }
-            })();
-          },
-        },
-        {
-          text: t('bookActions.moveToTrash'),
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                await storage.moveBookToTrash(item.bookId);
-              } finally {
-                bumpLibraryEpoch();
-                await refreshBookCount();
-              }
-            })();
-          },
-        },
-        { text: t('common.cancel'), style: 'cancel' },
-      ]);
+      void (async () => {
+        try {
+          await storage.setBookFavorite(item.bookId, !item.isFavorite);
+        } finally {
+          bumpLibraryEpoch();
+        }
+      })();
     },
-    [bumpLibraryEpoch, refreshBookCount, storage, t]
+    [bumpLibraryEpoch, storage]
   );
+
+  const moveToTrash = useCallback(
+    (item: LibraryBookWithProgress) => {
+      void (async () => {
+        try {
+          await storage.moveBookToTrash(item.bookId);
+        } finally {
+          bumpLibraryEpoch();
+          await refreshBookCount();
+        }
+      })();
+    },
+    [bumpLibraryEpoch, refreshBookCount, storage]
+  );
+
+  const sheetActions = useMemo(() => {
+    if (!activeBook) {
+      return [];
+    }
+    return [
+      {
+        key: 'favorite',
+        icon: (activeBook.isFavorite ? 'favorite' : 'favorite-border') as
+          | 'favorite'
+          | 'favorite-border',
+        label: activeBook.isFavorite
+          ? t('bookActions.removeFromFavorites')
+          : t('bookActions.addToFavorites'),
+        onPress: () => toggleFavorite(activeBook),
+      },
+      {
+        key: 'trash',
+        icon: 'delete-outline' as const,
+        label: t('bookActions.moveToTrash'),
+        destructive: true,
+        onPress: () => moveToTrash(activeBook),
+      },
+    ];
+  }, [activeBook, moveToTrash, t, toggleFavorite]);
 
   const fabBottom = insets.bottom + 16;
   const listPaddingBottom = fabBottom + 56 + 16;
@@ -103,15 +120,14 @@ export function BooksAndDocsScreen() {
       <BookCard
         title={item.title}
         author={item.author}
-        fileSizeMb={item.fileSizeBytes / (1024 * 1024)}
         coverUri={item.coverUri}
         progress={item.progressFraction}
         isFavorite={item.isFavorite}
         onPress={() => openReader(item)}
-        onLongPress={() => showBookActions(item)}
+        onLongPress={() => setActiveBook(item)}
       />
     ),
-    [openReader, showBookActions]
+    [openReader]
   );
 
   return (
@@ -149,6 +165,14 @@ export function BooksAndDocsScreen() {
       >
         <MaterialIcons name="add" size={30} color={colors.topBarText} />
       </Pressable>
+      <BookActionsSheet
+        visible={activeBook !== null}
+        title={activeBook?.title ?? ''}
+        author={activeBook?.author ?? ''}
+        coverUri={activeBook?.coverUri ?? null}
+        actions={sheetActions}
+        onClose={() => setActiveBook(null)}
+      />
     </View>
   );
 }

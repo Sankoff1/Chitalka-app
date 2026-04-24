@@ -166,17 +166,36 @@ export class StorageService {
     }
   }
 
+  private async listLibraryColumns(database: SQLiteDatabase): Promise<Set<string>> {
+    const statement = await database.prepareAsync(
+      `PRAGMA table_info(${LIBRARY_TABLE});`
+    );
+    try {
+      const result = await statement.executeAsync<{ name: string }>();
+      const rows = await result.getAllAsync();
+      return new Set(rows.map((r) => r.name));
+    } finally {
+      await statement.finalizeAsync();
+    }
+  }
+
   private async addLibraryColumnIfMissing(
     database: SQLiteDatabase,
+    existing: Set<string>,
     column: string,
     typeClause: string
   ): Promise<void> {
+    if (existing.has(column)) {
+      return;
+    }
     try {
       await database.execAsync(
         `ALTER TABLE ${LIBRARY_TABLE} ADD COLUMN ${column} ${typeClause};`
       );
-    } catch {
-      /* колонка уже есть — SQLite кидает "duplicate column name" */
+      existing.add(column);
+    } catch (error) {
+      // На свежих БД колонка может оказаться созданной конкурентным вызовом — просто логируем.
+      logError(`addLibraryColumnIfMissing(${column})`, error);
     }
   }
 
@@ -211,17 +230,25 @@ export class StorageService {
       // Идемпотентные миграции для установок с ранними версиями таблицы:
       // колонки добавляются ДО создания индекса по deleted_at, иначе на старых БД
       // индекс падает с "no such column".
+      const columns = await this.listLibraryColumns(database);
       await this.addLibraryColumnIfMissing(
         database,
+        columns,
         'total_chapters',
         'INTEGER NOT NULL DEFAULT 0'
       );
       await this.addLibraryColumnIfMissing(
         database,
+        columns,
         'is_favorite',
         'INTEGER NOT NULL DEFAULT 0'
       );
-      await this.addLibraryColumnIfMissing(database, 'deleted_at', 'INTEGER');
+      await this.addLibraryColumnIfMissing(
+        database,
+        columns,
+        'deleted_at',
+        'INTEGER'
+      );
       await database.execAsync(
         `CREATE INDEX IF NOT EXISTS idx_${LIBRARY_TABLE}_deleted
           ON ${LIBRARY_TABLE} (deleted_at);`

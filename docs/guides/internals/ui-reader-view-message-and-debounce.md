@@ -5,9 +5,13 @@
 
 ## `handleMessage`
 
-Парсит JSON; фильтрует по `t === 'scroll'` и конечному `y`.
+Парсит JSON:
 
-## Debounce 350 ms
+- `t === 'scroll'` и конечное `y` → debounce → `onScrollOffsetChange`.
+- `t === 'page'`, `dir === 'prev' | 'next'` → `onRequestPageChange?.(dir)`.
+- `t === 'ready'` → `onContentReady?.()`.
+
+## Debounce 350 ms (scroll)
 
 Таймер на стороне RN перед вызовом `onScrollOffsetChange` — снижает частоту автосохранения.
 

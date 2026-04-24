@@ -14,11 +14,11 @@
 
 ## Экраны
 
-Список `Drawer.Screen` с компонентами и `options` из [`i18n-catalog.md`](./i18n-catalog.md) / `useI18n` (мемоизированные строки).
+Список `Drawer.Screen` с компонентами из `src/screens/` и `options` из `useI18n` (мемоизированные строки `drawer.*`). Перечень маршрутов — в [`navigation-app-drawer-placeholders.md`](./navigation-app-drawer-placeholders.md).
 
 ## Связи
 
-- [`navigation-app-drawer-placeholders.md`](./navigation-app-drawer-placeholders.md).
+- [`navigation-app-drawer-placeholders.md`](./navigation-app-drawer-placeholders.md) — таблица маршрут ↔ экран.
 
 ## Риски для агентов
 

@@ -5,8 +5,8 @@
 
 ## Состояние `phase`
 
-- `loading` — индикатор, WebView может быть пустым.
-- `ready` — [`ui-reader-view-webview-lifecycle.md`](./ui-reader-view-webview-lifecycle.md) с html/baseUrl/chapterKey/initialScrollY, кнопки глав, назад в библиотеку.
+- `loading` — индикатор, пока нет готового `unpackedRootUri` / слоёв.
+- `ready` — хост `pageHost` с **до двух** наложенных [`ui-reader-view-webview-lifecycle.md`](./ui-reader-view-webview-lifecycle.md): активный слой с жестами, второй может грузиться для следующей главы; индикатор «текущая/всего» берёт `activeLayer.chapterIndex`.
 - `error` — текст [`screen-reader-error-mapping.md`](./screen-reader-error-mapping.md).
 
 ## Навигация назад в библиотеку

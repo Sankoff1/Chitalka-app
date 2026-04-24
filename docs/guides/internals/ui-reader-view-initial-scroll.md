@@ -3,13 +3,9 @@
 **Родительский модуль:** `ui-reader-view`  
 **Файл кода:** `src/components/ReaderView.tsx`
 
-## `applyInitialScroll`
+## `handleLoadEnd` (`onLoadEnd` WebView)
 
-`injectJavaScript('window.scrollTo(0, y)')` где `y = floor(max(0, initialScrollY))` при конечном числе.
-
-## Триггер
-
-`onLoadEnd` WebView — после загрузки документа.
+Один инжект IIFE: `window.scrollTo(0, y)` с `y = floor(max(0, initialScrollY))` (или 0 при нечисле); затем **два `requestAnimationFrame`** и `postMessage(JSON.stringify({ t: 'ready' }))` в RN (`onContentReady`). Если `requestAnimationFrame` нет — fallback `setTimeout(..., 32)`.
 
 ## Связи
 

@@ -11,6 +11,10 @@
 
 Фрагмент HTML + база для относительных путей (критично для картинок EPUB).
 
+## Android
+
+`androidLayerType="hardware"` — стабильнее композитинг при анимациях родителя (`ReaderScreen`).
+
 ## Безопасность / доступ к файлам
 
 `originWhitelist={['*']}`, `allowFileAccess`, `allowFileAccessFromFileURLs`, `allowUniversalAccessFromFileURLs`, `mixedContentMode`, `setSupportMultipleWindows={false}` — осознанный компромисс для локального чтения.

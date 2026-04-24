@@ -13,6 +13,7 @@
 
 - `openDatabaseAsync('chitalka.db')`.
 - `execAsync` с `CREATE TABLE IF NOT EXISTS` для `reading_progress` и `library_books` + индексы.
+- Перед `ALTER TABLE … ADD COLUMN` для `library_books`: **`PRAGMA table_info(library_books)`** → `Set` имён колонок; `addLibraryColumnIfMissing` пропускает уже существующие поля и обновляет кэш после успешного `ALTER` (меньше гонок и шума в логах, чем опора только на ошибку SQLite).
 
 ## Связи
 

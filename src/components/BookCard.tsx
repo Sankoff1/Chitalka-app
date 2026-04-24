@@ -6,8 +6,6 @@ import { useTheme } from '../theme';
 export type BookCardProps = {
   title: string;
   author: string;
-  /** Размер файла в мегабайтах (уже переведённый). */
-  fileSizeMb: number;
   coverUri?: string | null;
   /** Прогресс чтения 0..1. `null`/`undefined` — полоса не показывается. */
   progress?: number | null;
@@ -27,7 +25,6 @@ function clampFraction(value: number): number {
 export function BookCard({
   title,
   author,
-  fileSizeMb,
   coverUri,
   progress,
   isFavorite,
@@ -57,7 +54,10 @@ export function BookCard({
         <View
           style={[
             styles.coverWrap,
-            { backgroundColor: colors.menuBackground },
+            {
+              backgroundColor: colors.menuBackground,
+              borderColor: `${colors.textSecondary}33`,
+            },
           ]}
         >
           {coverUri ? (
@@ -67,9 +67,34 @@ export function BookCard({
               resizeMode="cover"
             />
           ) : (
-            <Text style={[styles.coverPlaceholder, { color: colors.textSecondary }]}>
-              📖
-            </Text>
+            <View style={styles.coverFallback}>
+              <View
+                style={[
+                  styles.coverAccent,
+                  { backgroundColor: colors.topBar },
+                ]}
+              />
+              <Text
+                numberOfLines={4}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+                style={[styles.coverTitle, { color: colors.text }]}
+              >
+                {title}
+              </Text>
+              <View
+                style={[
+                  styles.coverRule,
+                  { backgroundColor: `${colors.textSecondary}55` },
+                ]}
+              />
+              <Text
+                numberOfLines={2}
+                style={[styles.coverAuthor, { color: colors.textSecondary }]}
+              >
+                {author}
+              </Text>
+            </View>
           )}
           {isFavorite ? (
             <View style={styles.favoriteBadge} accessibilityLabel="favorite">
@@ -89,9 +114,6 @@ export function BookCard({
             style={[styles.author, { color: colors.textSecondary }]}
           >
             {author}
-          </Text>
-          <Text style={[styles.size, { color: colors.textSecondary }]}>
-            {fileSizeMb.toFixed(2)} {t('common.mb')}
           </Text>
           {hasProgress ? (
             <View
@@ -151,6 +173,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  coverFallback: {
+    flex: 1,
+    alignSelf: 'stretch',
+    paddingHorizontal: 6,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coverAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+  },
+  coverTitle: {
+    fontSize: 11,
+    lineHeight: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  coverRule: {
+    width: 28,
+    height: 1,
+    marginVertical: 6,
+  },
+  coverAuthor: {
+    fontSize: 9,
+    lineHeight: 11,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   favoriteBadge: {
     position: 'absolute',
@@ -172,9 +227,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  coverPlaceholder: {
-    fontSize: 28,
-  },
   textBlock: {
     flex: 1,
     justifyContent: 'center',
@@ -189,10 +241,6 @@ const styles = StyleSheet.create({
   author: {
     fontSize: 14,
     lineHeight: 19,
-  },
-  size: {
-    fontSize: 12,
-    marginTop: 2,
   },
   progressRow: {
     marginTop: 6,

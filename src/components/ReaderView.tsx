@@ -17,6 +17,8 @@ export type ReaderViewProps = {
   onScrollOffsetChange: (scrollY: number) => void;
   /** Запрос смены главы по тапу в зоне или горизонтальному свайпу. */
   onRequestPageChange?: (direction: ReaderPageDirection) => void;
+  /** Документ WebView закончил загрузку и initial scroll применен. */
+  onContentReady?: () => void;
 };
 
 export function ReaderView({
@@ -26,6 +28,7 @@ export function ReaderView({
   initialScrollY,
   onScrollOffsetChange,
   onRequestPageChange,
+  onContentReady,
 }: ReaderViewProps) {
   const webRef = useRef<WebView>(null);
   const scrollDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -33,6 +36,8 @@ export function ReaderView({
   onScrollRef.current = onScrollOffsetChange;
   const onPageRef = useRef(onRequestPageChange);
   onPageRef.current = onRequestPageChange;
+  const onReadyRef = useRef(onContentReady);
+  onReadyRef.current = onContentReady;
 
   const handleMessage = useCallback((event: { nativeEvent: { data: string } }) => {
     try {
@@ -57,6 +62,10 @@ export function ReaderView({
       }
       if (payload.t === 'page' && (payload.dir === 'prev' || payload.dir === 'next')) {
         onPageRef.current?.(payload.dir);
+        return;
+      }
+      if (payload.t === 'ready') {
+        onReadyRef.current?.();
       }
     } catch {
       /* ignore malformed messages */
@@ -140,12 +149,27 @@ export function ReaderView({
     })();
   `;
 
-  const applyInitialScroll = useCallback(() => {
-    const y = Math.max(0, Math.floor(initialScrollY));
-    if (!Number.isFinite(y)) {
-      return;
-    }
-    webRef.current?.injectJavaScript(`window.scrollTo(0, ${y}); true;`);
+  const handleLoadEnd = useCallback(() => {
+    const raw = Math.floor(initialScrollY);
+    const y = Number.isFinite(raw) ? Math.max(0, raw) : 0;
+    /* Ждём два rAF, чтобы отчитаться о готовности только после первой реальной отрисовки —
+       иначе анимация перелистывания стартует до paint, и текст визуально «пересобирается». */
+    webRef.current?.injectJavaScript(`
+      (function () {
+        try { window.scrollTo(0, ${y}); } catch (e) {}
+        var ping = function () {
+          if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ t: 'ready' }));
+          }
+        };
+        if (typeof requestAnimationFrame === 'function') {
+          requestAnimationFrame(function () { requestAnimationFrame(ping); });
+        } else {
+          setTimeout(ping, 32);
+        }
+      })();
+      true;
+    `);
   }, [initialScrollY]);
 
   return (
@@ -155,10 +179,11 @@ export function ReaderView({
         key={chapterKey}
         style={styles.webview}
         originWhitelist={['*']}
+        androidLayerType="hardware"
         source={{ html, baseUrl }}
         injectedJavaScript={injectedScrollBridge}
         onMessage={handleMessage}
-        onLoadEnd={applyInitialScroll}
+        onLoadEnd={handleLoadEnd}
         scrollEnabled
         showsVerticalScrollIndicator
         setSupportMultipleWindows={false}

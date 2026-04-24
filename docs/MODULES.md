@@ -21,9 +21,9 @@
 
 | ID | Путь | Назначение |
 |----|------|------------|
-| `core-types` | `src/core/types.ts` | `ReadingProgress`, `LibraryBookRecord` — контракт SQLite и UI списка книг. |
+| `core-types` | `src/core/types.ts` | `ReadingProgress`; `LibraryBookRecord` (контракт SQLite: `totalChapters`, `isFavorite`, `deletedAt` для soft-delete); `LibraryBookWithProgress` — запись библиотеки + доля прогресса для списков. |
 
-**Кто импортирует:** `storage`, `import-library`, `books-screen` (и реэкспорт типов из `StorageService`).
+**Кто импортирует:** `storage`, `import-library`, экраны библиотеки (и реэкспорт типов из `StorageService`).
 
 ---
 
@@ -31,12 +31,12 @@
 
 | ID | Путь | Назначение |
 |----|------|------------|
-| `storage` | `src/database/StorageService.ts` | SQLite (`expo-sqlite`): прогресс чтения, таблица библиотеки, миграции; ошибки `StorageServiceError`. |
+| `storage` | `src/database/StorageService.ts` | SQLite (`expo-sqlite`): прогресс; таблица `library_books` с `total_chapters`, `is_favorite`, `deleted_at` (корзина); выборки `listLibraryBooks`, `listRecentlyReadBooks`, `listFavoriteBooks`, `listTrashedBooks`; `setBookFavorite`, `moveBookToTrash`, `restoreBookFromTrash`, `purgeBook`, `setBookTotalChapters`; миграции: `PRAGMA table_info` + кэш имён колонок перед идемпотентными `ALTER`, затем индекс по `deleted_at`; ошибки `StorageServiceError`. |
 | `epub-service` | `src/api/EpubService.ts` | Распаковка EPUB, spine/TOC, подготовка HTML глав, таймауты, `EpubServiceError`, константы ошибок (`EPUB_EMPTY_SPINE`, …), `readFilesystemLibraryMetadata`. |
 | `util-timeout` | `src/utils/withTimeout.ts` | Обёртка таймаута для асинхронных вызовов. |
 | `util-android-copy` | `src/utils/epubPipelineAndroid.ts` | `copyFileToInternalStorage` — копия во внутренний `file://` (в т.ч. с `content://`). |
 | `util-epub-picker` | `src/utils/epubPicker.ts` | Документ-пикер, `deriveBookId`, `isEpubFileName`, результат `EpubPickResult`. |
-| `import-library` | `src/library/importEpubToLibrary.ts` | Оркестрация: копия → `EpubService` → обложка/метаданные → запись в `StorageService`; пути `library_epubs/`, `library_covers/`. |
+| `import-library` | `src/library/importEpubToLibrary.ts` | Оркестрация: копия → `EpubService` → обложка/метаданные → запись в `StorageService`; пути `library_epubs/`, `library_covers/`; повторный импорт того же `bookId` может снять soft-delete (`deleted_at`) через upsert. |
 
 **Связи:**
 
@@ -79,10 +79,10 @@
 | `nav-types` | `src/navigation/types.ts` | `DrawerParamList`, `RootStackParamList`. |
 | `nav-ref` | `src/navigation/navigationRef.ts` | `navigationRef`, `navigateToReader`, `flushReaderNavigationIfPending` (очередь до готовности контейнера). |
 | `nav-root-stack` | `src/navigation/RootStack.tsx` | Native stack: `Main` (drawer) + `Reader`. |
-| `nav-drawer` | `src/navigation/AppDrawer.tsx` | Drawer: экраны-заглушки, «Книги и документы», настройки, логи; header = `AppTopBar`. |
+| `nav-drawer` | `src/navigation/AppDrawer.tsx` | Drawer без заглушек: `ReadingNow`, `BooksAndDocs`, `Favorites`, `Cart` (экран корзины `TrashScreen`), `DebugLogs`, `Settings`; подписи через i18n `drawer.*`; header = `AppTopBar`. |
 | `nav-reader-wrapper` | `src/navigation/ReaderScreenWrapper.tsx` | Связка роут-параметров с `ReaderScreen` + `useLibrary` (обновление счётчика при уходе). |
 
-**Связи:** `nav-ref` → `nav-types`; `nav-root-stack` → `nav-drawer`, `nav-reader-wrapper`, `nav-types`; `nav-drawer` → экраны, `app-top-bar`, `i18n`, `theme`; `nav-reader-wrapper` → `reader-screen`, `library-context`, `nav-types`.
+**Связи:** `nav-ref` → `nav-types`; `nav-root-stack` → `nav-drawer`, `nav-reader-wrapper`, `nav-types`; `nav-drawer` → `screen-reading-now`, `screen-books`, `screen-favorites`, `screen-trash`, `screen-debug-logs`, `screen-settings`, `ui-top-bar`, `i18n`, `theme`; `nav-reader-wrapper` → `reader-screen`, `library-context`, `nav-types`.
 
 ---
 
@@ -90,7 +90,7 @@
 
 | ID | Путь | Назначение |
 |----|------|------------|
-| `library-context` | `src/context/LibraryContext.tsx` | Счётчик книг, `libraryEpoch`, импорт с тулбара/приветствия, навигация в читалку/в раздел книг, модалка первого запуска. |
+| `library-context` | `src/context/LibraryContext.tsx` | Счётчик книг, `storageReady`, `libraryEpoch`, `bumpLibraryEpoch` / `refreshBookCount`, импорт EPUB с тулбара/приветствия, переход в читалку после импорта, `openBooksForSearch` → `BooksAndDocs`, модалка первого запуска; **без** API избранного/корзины (это экраны + `StorageService`). |
 
 **Связи:** → `first-launch-modal`, `debug-autoload`, `storage`, `i18n`, `import-library`, `util-epub-picker`, `nav-ref`.
 
@@ -100,12 +100,13 @@
 
 | ID | Путь | Назначение |
 |----|------|------------|
-| `ui-reader-view` | `src/components/ReaderView.tsx` | WebView + postMessage скролла, debounce для автосохранения. |
-| `ui-book-card` | `src/components/BookCard.tsx` | Карточка книги в списке. |
+| `ui-reader-view` | `src/components/ReaderView.tsx` | WebView (`key={chapterKey}`, `androidLayerType="hardware"`): мост JSON — `scroll` (debounce ~350 ms на RN), `page` с полем **`dir`**: `"prev"` \| `"next"` → `onRequestPageChange`, **`ready`** → `onContentReady`; после `onLoadEnd` — инжект начального скролла и два `requestAnimationFrame` в странице перед `ready` (см. комментарий в коде про paint и анимацию). |
+| `ui-book-card` | `src/components/BookCard.tsx` | Карточка: обложка или **fallback-макет** на месте обложки (заголовок/автор, акцентная полоса), рамка `hairline`; опционально полоса `progress` 0..1, бейдж избранного, `onPress` / `onLongPress`. Размер файла в UI **не** показывается. |
+| `ui-book-actions-sheet` | `src/components/BookActionsSheet.tsx` | Нижний лист действий с книгой (`Modal` + анимация): список `BookActionItem`, обложка/метаданные. |
 | `ui-first-launch` | `src/components/FirstLaunchModal.tsx` | Модалка пустой библиотеки / первого запуска. |
 | `ui-top-bar` | `src/components/AppTopBar.tsx` | Шапка drawer: меню, заголовок, поиск → `openBooksForSearch`. |
 
-**Связи:** `ui-reader-view` — без импортов проектных модулей (только RN + WebView). Остальные → `theme`, `i18n`; `ui-top-bar` → `library-context`.
+**Связи:** `ui-reader-view` — без импортов проектных модулей (только RN + WebView). Остальные → `theme`, `i18n`; `ui-book-actions-sheet` → `theme`, `i18n`; `ui-top-bar` → `library-context`.
 
 ---
 
@@ -113,21 +114,23 @@
 
 | ID | Путь | Назначение |
 |----|------|------------|
-| `screen-placeholder` | `src/screens/PlaceholderScreen.tsx` | Заглушка для пунктов drawer без контента. |
-| `screen-books` | `src/screens/BooksAndDocsScreen.tsx` | Список книг из SQLite, FAB импорта, открытие читалки. |
-| `screen-reader` | `src/screens/ReaderScreen.tsx` | Загрузка структуры EPUB, глава, прогресс, ошибки/таймауты, встраивание `ReaderView`. |
+| `screen-reading-now` | `src/screens/ReadingNowScreen.tsx` | Недавно читаемые (`listRecentlyReadBooks`); `BookActionsSheet` по long press (избранное, корзина). |
+| `screen-books` | `src/screens/BooksAndDocsScreen.tsx` | Список активных книг; `BookActionsSheet` по long press; FAB импорта; открытие читалки. |
+| `screen-favorites` | `src/screens/FavoritesScreen.tsx` | Избранное; `BookActionsSheet` по long press (снять избранное, корзина + `refreshBookCount`). |
+| `screen-trash` | `src/screens/TrashScreen.tsx` | Корзина (`listTrashedBooks`): восстановление, окончательное удаление (`purgeBook`). |
+| `screen-reader` | `src/screens/ReaderScreen.tsx` | EPUB + spine; **два буферных слоя** WebView (`layerA` / `layerB`, `activeLayerId`): при смене главы неактивный слой получает HTML, ждёт `onContentReady`, затем **перекрёстная анимация** (`Animated`, ~500 ms, opacity/translate + лёгкие «шейды»); жесты только у активного слоя; прогресс и `goChapter` привязаны к `activeLayer.chapterIndex`. |
 | `screen-settings` | `src/screens/SettingsScreen.tsx` | Тема, язык, версия (`expo-constants`). |
 | `screen-debug-logs` | `src/screens/DebugLogsScreen.tsx` | Просмотр буфера логов, экспорт/sharing. |
 | `screen-library-legacy` | `src/screens/LibraryScreen.tsx` | Отдельный экран выбора EPUB (сейчас **нигде не подключён** к `AppDrawer` / `RootStack` — модуль на будущее или внешняя вставка). |
 
 **Связи:**
 
-- `screen-books` → `ui-book-card`, `library-context`, `i18n`, `core-types`, `storage`, `nav-ref`, `theme`, safe-area
+- `screen-reading-now`, `screen-books`, `screen-favorites` → `ui-book-card`, `ui-book-actions-sheet`, `storage`, `i18n`, `nav-ref`, `theme`, safe-area
+- `screen-trash` → `storage`, `library-context` (`libraryEpoch`, `bumpLibraryEpoch`, `refreshBookCount`), `i18n`, `theme`, FileSystem (удаление файлов при purge), safe-area; свой UI строки списка (не `BookCard`)
 - `screen-reader` → `epub-service`, `ui-reader-view`, `storage`, `i18n`, FileSystem
 - `screen-settings` → `i18n`, `theme`, constants
 - `screen-debug-logs` → `debug-log-buffer`, `i18n`, `theme`, FileSystem, Sharing
-- `screen-placeholder` → `theme`
-- `nav-drawer` внутренние обёртки (`ReadingNowScreen`, …) → `screen-placeholder` + `i18n`
+- `nav-drawer` → перечисленные экраны drawer + `ui-top-bar`
 
 ---
 
@@ -139,9 +142,10 @@
 | `debug-console-capture` | `src/debug/installConsoleCapture.ts` | Перехват `console.*` → `debug-log-buffer`. |
 | `debug-autoload` | `src/debug/debugAutoLoadEpub.ts` | В __DEV__: автoимпорт bundled EPUB через `import-library`. |
 | `debug-epub-asset-types` | `src/debug/epub-asset.d.ts` | Типизация импорта `.epub` из ассетов. |
+| `debug-readme` | `src/debug/README.md` | Человекочитаемое описание отладочных сценариев (dev). |
 | `asset-debug-epub` | `assets/debug/ebook.demo.epub` | Демо-файл для автозагрузки. |
 
-**Связи:** `entry` → `debug-console-capture`; `library-context` → `debug-autoload`; `debug-autoload` → `import-library`, `storage`, `expo-asset`, bundled epub; `debug-console-capture` → `debug-log-buffer`; `screen-debug-logs` → `debug-log-buffer`.
+**Связи:** `entry` → `debug-console-capture`; `library-context` → `debug-autoload`; `debug-autoload` → `import-library`, `storage`, `expo-asset`, bundled epub; `debug-console-capture` → `debug-log-buffer`; `screen-debug-logs` → `debug-log-buffer`; `debug-readme` — только документация в репозитории.
 
 ---
 
@@ -199,16 +203,19 @@ flowchart TB
   subgraph ui["UI"]
     RV[ui-reader-view]
     BC[ui-book-card]
+    BAS[ui-book-actions-sheet]
     FL[ui-first-launch]
     TB[ui-top-bar]
   end
 
   subgraph screens["Экраны"]
+    ReadNow[screen-reading-now]
     Books[screen-books]
+    Fav[screen-favorites]
+    Trash[screen-trash]
     Reader[screen-reader]
     Sett[screen-settings]
     Dbg[screen-debug-logs]
-    Ph[screen-placeholder]
   end
 
   subgraph debug["Отладка"]
@@ -236,10 +243,12 @@ flowchart TB
   ReaderWrap --> LibCtx
 
   Drawer --> TB
+  Drawer --> ReadNow
   Drawer --> Books
+  Drawer --> Fav
+  Drawer --> Trash
   Drawer --> Sett
   Drawer --> Dbg
-  Drawer --> Ph
 
   LibCtx --> FL
   LibCtx --> DbgAuto
@@ -258,10 +267,26 @@ flowchart TB
   EpubSvc --> AC
   EpubSvc --> TO
 
+  ReadNow --> BC
+  ReadNow --> BAS
+  ReadNow --> Storage
+  ReadNow --> NavRef
+  ReadNow --> LibCtx
+
   Books --> BC
+  Books --> BAS
   Books --> Storage
   Books --> NavRef
   Books --> LibCtx
+
+  Fav --> BC
+  Fav --> BAS
+  Fav --> Storage
+  Fav --> NavRef
+  Fav --> LibCtx
+
+  Trash --> Storage
+  Trash --> LibCtx
 
   Reader --> EpubSvc
   Reader --> RV
@@ -281,23 +306,26 @@ flowchart TB
 | `library-context` | storage, import-library, epub-picker, nav-ref, i18n, first-launch, debug-autoload |
 | `import-library` | epub-service, android-copy, storage, core-types, i18n catalog |
 | `epub-service` | android-copy, withTimeout, FileSystem, zip |
-| `nav-drawer` | screens, AppTopBar, theme, i18n |
+| `nav-drawer` | ReadingNow/Books/Favorites/Trash/Debug/Settings screens, AppTopBar, theme, i18n |
 | `nav-reader-wrapper` | ReaderScreen, library-context |
-| `ReaderScreen` | EpubService, ReaderView, StorageService, i18n |
-| `BooksAndDocsScreen` | BookCard, StorageService, library-context, navigationRef, theme, i18n |
+| `ReaderScreen` | EpubService, ReaderView (×2 при переходе), RN Animated, StorageService, i18n |
+| `ReadingNowScreen` | BookCard, BookActionsSheet, StorageService, library-context, navigationRef, theme, i18n |
+| `BooksAndDocsScreen` | BookCard, BookActionsSheet, StorageService, library-context, navigationRef, theme, i18n |
+| `FavoritesScreen` | BookCard, BookActionsSheet, StorageService, library-context, navigationRef, theme, i18n |
+| `TrashScreen` | StorageService, library-context, theme, i18n, FileSystem |
 
 ---
 
 ## 14. Внешние границы (npm / Expo)
 
-Ключевые мосты из кода приложения: **`expo-sqlite`**, **`expo-file-system/legacy`**, **`expo-document-picker`**, **`react-native-webview`**, **`react-native-zip-archive`**, **`@react-navigation/*`**, **`AsyncStorage`**, **`expo-asset`**, **`expo-sharing`**, **`expo-constants`**. Их не дублируем как внутренние модули — это **зависимости** перечисленных выше единиц.
+Ключевые мосты из кода приложения: **`expo-sqlite`**, **`expo-file-system/legacy`**, **`expo-document-picker`**, **`react-native-webview`**, **`react-native-zip-archive`**, **`@react-navigation/*`**, **`AsyncStorage`**, **`expo-asset`**, **`expo-sharing`**, **`expo-constants`**, API **`Animated` / `Easing`** из **`react-native`** (перелистывание глав в `ReaderScreen`). Их не дублируем как внутренние модули — это **зависимости** перечисленных выше единиц.
 
 ---
 
 ## 15. Внутренний уровень (ещё мельче)
 
-Каждый логический модуль из таблиц §1–11 дополнительно разбит на **внутренние единицы** (отдельная функция, эффект, тип, файл конфигурации): описание и связи — в каталоге **[`docs/guides/internals/README.md`](guides/internals/README.md)** (81 карточка + индекс).
+Каждый логический модуль из таблиц §1–11 дополнительно разбит на **внутренние единицы** (отдельная функция, эффект, тип, файл конфигурации): описание и связи — в каталоге **[`docs/guides/internals/README.md`](guides/internals/README.md)** (индекс карточек; при появлении новых экранов и API хранилища дополняйте карточки и строки в оглавлении).
 
 ---
 
-*Файл отражает состояние исходников на момент генерации; при добавлении файлов обновляйте таблицы и диаграмму.*
+*Файл отражает текущее состояние `src/` в рабочей копии (в т.ч. двухслойный ридер, `BookActionsSheet`, обновлённый `BookCard`/`ReaderView`, миграции SQLite через `PRAGMA table_info`). При коммитах обновляйте таблицы, mermaid и `guides/internals/`.*

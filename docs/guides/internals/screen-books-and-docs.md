@@ -5,7 +5,7 @@
 
 ## `loadBooks`
 
-`storage.listLibraryBooks()` → state; ошибки → пустой список.
+`storage.listLibraryBooks()` (активные книги с JOIN прогресса → `LibraryBookWithProgress`) → state; ошибки → пустой список.
 
 ## `useFocusEffect`
 
@@ -15,9 +15,9 @@
 
 Если `libraryEpoch > 0` — повторная загрузка (импорт извне).
 
-## Список
+## Список и действия
 
-`FlatList` + [`ui-book-card.md`](./ui-book-card.md); `openReader` → [`navigation-ref-navigate-to-reader.md`](./navigation-ref-navigate-to-reader.md).
+`FlatList` + [`ui-book-card.md`](./ui-book-card.md) (`progress`, `isFavorite`, `onLongPress` → `setActiveBook`) + [`ui-book-actions-sheet.md`](./ui-book-actions-sheet.md); `openReader` → [`navigation-ref-navigate-to-reader.md`](./navigation-ref-navigate-to-reader.md). Лист: избранное (`setBookFavorite`), корзина (`moveBookToTrash`) + `bumpLibraryEpoch` / `refreshBookCount`.
 
 ## FAB
 

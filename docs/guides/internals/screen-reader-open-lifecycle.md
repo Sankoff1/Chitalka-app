@@ -5,17 +5,17 @@
 
 ## `useEffect` на `[bookPath, bookId, storage, t]`
 
-1. Сброс фаз: `loading`, очистка spine/html, `unpackedRootUri`.
+1. Сброс: `loading`, spine, `unpackedRootUri`, оба слоя `layerA`/`layerB`, `activeLayerId`, флаги перехода, таймеры ожидания `ready`.
 2. `epubRef.current?.destroy()`; новый `EpubService(bookPath)`.
 3. `getProgress(bookId)`; `epub.open()`; проверка `cancelled`.
 4. Восстановление индекса главы и скролла из прогресса.
-5. `getSpineChapterUri` + `prepareChapter` → `setChapterHtml`, `phase='ready'`.
+5. `getSpineChapterUri` + `prepareChapter` → начальный контент в **`layerA`** (с уникальным `token`), `layerB = null`, `phase='ready'`.
 6. Сохранение прогресса + вызов `onOpenedRef.current()`.
 7. Ошибка → `destroy`, `phase='error'`, текст через [`screen-reader-error-mapping.md`](./screen-reader-error-mapping.md).
 
 ## Cleanup
 
-`cancelled = true`, `destroy` сервиса.
+`cancelled = true`, `destroy` сервиса, сброс ожиданий `onContentReady` / таймеров перехода.
 
 ## Связи
 

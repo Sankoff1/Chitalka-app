@@ -15,7 +15,7 @@
 
 ## Связи
 
-Потребители: [`navigation-app-top-bar.md`](./navigation-app-top-bar.md), [`screen-books-and-docs.md`](./screen-books-and-docs.md), [`navigation-reader-wrapper.md`](./navigation-reader-wrapper.md), [`screen-library-legacy.md`](./screen-library-legacy.md).
+Потребители: [`navigation-app-top-bar.md`](./navigation-app-top-bar.md), [`screen-books-and-docs.md`](./screen-books-and-docs.md), экраны корзины/избранного/«сейчас читаю» (эпоха и счётчик), [`navigation-reader-wrapper.md`](./navigation-reader-wrapper.md), [`screen-library-legacy.md`](./screen-library-legacy.md).
 
 ## Риски для агентов
 

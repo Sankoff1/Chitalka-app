@@ -1,20 +1,7 @@
-# Внутренняя единица: `PlaceholderScreen`
+# Архив: `PlaceholderScreen` удалён
 
-**Родительский модуль:** `screen-placeholder`  
-**Файл кода:** `src/screens/PlaceholderScreen.tsx`
+**Родительский модуль:** *нет (модуль снят)*
 
-## Пропсы
+Компонент `src/screens/PlaceholderScreen.tsx` **отсутствует** в текущей кодовой базе: все пункты drawer используют полноценные экраны из `src/screens/`.
 
-`title`, опционально `subtitle`.
-
-## UI
-
-Центрированный текст на фоне `colors.background` из темы.
-
-## Связи
-
-- Используется inline-экранами в [`navigation-app-drawer-placeholders.md`](./navigation-app-drawer-placeholders.md).
-
-## Риски для агентов
-
-Не подключать тяжёлую логику — экран-заглушка.
+**Актуальная навигация:** [`navigation-app-drawer-placeholders.md`](./navigation-app-drawer-placeholders.md), [`MODULES.md`](../../MODULES.md) §6 и §9.
