@@ -9,23 +9,44 @@ export type BookCardProps = {
   /** Размер файла в мегабайтах (уже переведённый). */
   fileSizeMb: number;
   coverUri?: string | null;
+  /** Прогресс чтения 0..1. `null`/`undefined` — полоса не показывается. */
+  progress?: number | null;
+  /** Если `true`, в правом верхнем углу обложки показывается отметка «Избранное». */
+  isFavorite?: boolean;
   onPress: () => void;
+  onLongPress?: () => void;
 };
+
+function clampFraction(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  return Math.min(1, Math.max(0, value));
+}
 
 export function BookCard({
   title,
   author,
   fileSizeMb,
   coverUri,
+  progress,
+  isFavorite,
   onPress,
+  onLongPress,
 }: BookCardProps) {
   const { colors } = useTheme();
   const { t } = useI18n();
+
+  const hasProgress = typeof progress === 'number';
+  const fraction = hasProgress ? clampFraction(progress as number) : 0;
+  const percent = Math.round(fraction * 100);
 
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={350}
       style={({ pressed }) => [
         styles.card,
         { backgroundColor: colors.interactive },
@@ -50,6 +71,11 @@ export function BookCard({
               📖
             </Text>
           )}
+          {isFavorite ? (
+            <View style={styles.favoriteBadge} accessibilityLabel="favorite">
+              <Text style={styles.favoriteGlyph}>♥</Text>
+            </View>
+          ) : null}
         </View>
         <View style={styles.textBlock}>
           <Text
@@ -67,6 +93,35 @@ export function BookCard({
           <Text style={[styles.size, { color: colors.textSecondary }]}>
             {fileSizeMb.toFixed(2)} {t('common.mb')}
           </Text>
+          {hasProgress ? (
+            <View
+              style={styles.progressRow}
+              accessibilityRole="progressbar"
+              accessibilityValue={{ min: 0, max: 100, now: percent }}
+            >
+              <View
+                style={[
+                  styles.progressTrack,
+                  { backgroundColor: colors.menuBackground },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: `${percent}%`,
+                      backgroundColor: colors.topBar,
+                    },
+                  ]}
+                />
+              </View>
+              <Text
+                style={[styles.progressLabel, { color: colors.text }]}
+              >
+                {t('books.readPercent', { percent })}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </View>
     </Pressable>
@@ -95,6 +150,23 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+  favoriteBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  favoriteGlyph: {
+    color: '#FF5A7A',
+    fontSize: 13,
+    lineHeight: 14,
   },
   coverImage: {
     width: '100%',
@@ -121,5 +193,23 @@ const styles = StyleSheet.create({
   size: {
     fontSize: 12,
     marginTop: 2,
+  },
+  progressRow: {
+    marginTop: 6,
+    gap: 4,
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  progressLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
   },
 });

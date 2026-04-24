@@ -3,8 +3,6 @@
     "readingNow": "Reading now",
     "books": "Books & documents",
     "favorites": "Favorites",
-    "authors": "Authors",
-    "collections": "Collections",
     "cart": "Trash",
     "debugLogs": "Debug logs",
     "settings": "Settings"
@@ -16,19 +14,13 @@
     },
     "favorites": {
       "title": "Favorites",
-      "subtitle": "Favorite items."
-    },
-    "authors": {
-      "title": "Authors",
-      "subtitle": "Author list."
-    },
-    "collections": {
-      "title": "Collections",
-      "subtitle": "Your collections."
+      "subtitle": "Favorite books.",
+      "empty": "No favorites yet. Open a book's menu in the list and add it to favorites."
     },
     "cart": {
       "title": "Trash",
-      "subtitle": "Removed items."
+      "subtitle": "Removed items.",
+      "empty": "Trash is empty."
     }
   },
   "debugLogs": {
@@ -59,7 +51,8 @@
   },
   "books": {
     "empty": "No books yet. Tap “+” to choose an EPUB file.",
-    "addBookA11y": "Add EPUB book"
+    "addBookA11y": "Add EPUB book",
+    "readPercent": "{{percent}}% read"
   },
   "reader": {
     "backToLibrary": "← Back to library",
@@ -91,7 +84,8 @@
     "unknownAuthor": "Unknown author"
   },
   "common": {
-    "mb": "MB"
+    "mb": "MB",
+    "cancel": "Cancel"
   },
   "libraryScreen": {
     "title": "Library",
@@ -102,5 +96,18 @@
     "openMenu": "Open menu",
     "addBook": "Add book",
     "search": "Search"
+  },
+  "bookActions": {
+    "title": "Book actions",
+    "addToFavorites": "Add to favorites",
+    "removeFromFavorites": "Remove from favorites",
+    "moveToTrash": "Move to trash"
+  },
+  "trash": {
+    "restore": "Restore",
+    "deleteForever": "Delete forever",
+    "confirmDeleteTitle": "Delete book permanently?",
+    "confirmDeleteMessage": "The book file and cover will be removed from the device. This cannot be undone.",
+    "deleteFailed": "Could not delete the book."
   }
 }

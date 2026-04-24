@@ -1,11 +1,9 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Pressable,
   StyleSheet,
   Text,
   View,
@@ -14,18 +12,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCard } from '../components/BookCard';
 import { useLibrary } from '../context/LibraryContext';
-import { useI18n } from '../i18n';
 import type { LibraryBookWithProgress } from '../core/types';
 import { StorageService } from '../database/StorageService';
+import { useI18n } from '../i18n';
 import { navigateToReader } from '../navigation/navigationRef';
 import { useTheme } from '../theme';
 
-export function BooksAndDocsScreen() {
+export function ReadingNowScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
-  const { pickEpubFromToolbar, libraryEpoch, bumpLibraryEpoch, refreshBookCount } =
-    useLibrary();
+  const { libraryEpoch, bumpLibraryEpoch, refreshBookCount } = useLibrary();
   const storage = useMemo(() => new StorageService(), []);
   const [books, setBooks] = useState<LibraryBookWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +30,7 @@ export function BooksAndDocsScreen() {
   const loadBooks = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await storage.listLibraryBooks();
+      const list = await storage.listRecentlyReadBooks();
       setBooks(list);
     } catch {
       setBooks([]);
@@ -95,9 +92,6 @@ export function BooksAndDocsScreen() {
     [bumpLibraryEpoch, refreshBookCount, storage, t]
   );
 
-  const fabBottom = insets.bottom + 16;
-  const listPaddingBottom = fabBottom + 56 + 16;
-
   const renderItem = useCallback(
     ({ item }: { item: LibraryBookWithProgress }) => (
       <BookCard
@@ -127,28 +121,15 @@ export function BooksAndDocsScreen() {
           renderItem={renderItem}
           contentContainerStyle={[
             styles.listContent,
-            { paddingBottom: listPaddingBottom },
+            { paddingBottom: insets.bottom + 16 },
           ]}
           ListEmptyComponent={
             <Text style={[styles.empty, { color: colors.textSecondary }]}>
-              {t('books.empty')}
+              {t('screens.readingNow.subtitle')}
             </Text>
           }
         />
       )}
-      <Pressable
-        accessibilityLabel={t('books.addBookA11y')}
-        onPress={() => {
-          void pickEpubFromToolbar();
-        }}
-        style={({ pressed }) => [
-          styles.fab,
-          { bottom: fabBottom, backgroundColor: colors.topBar },
-          pressed && styles.fabPressed,
-        ]}
-      >
-        <MaterialIcons name="add" size={30} color={colors.topBarText} />
-      </Pressable>
     </View>
   );
 }
@@ -171,22 +152,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     fontSize: 16,
     lineHeight: 22,
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-  },
-  fabPressed: {
-    opacity: 0.9,
   },
 });

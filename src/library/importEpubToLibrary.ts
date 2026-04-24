@@ -70,6 +70,23 @@ export async function importEpubToLibrary(
       );
     }
 
+    const existing = await storage.getLibraryBook(bookId);
+    if (existing) {
+      const existingInfo = await FileSystem.getInfoAsync(existing.fileUri);
+      if (existingInfo.exists && !existingInfo.isDirectory) {
+        logImportStage('Книга уже в библиотеке — повторный импорт пропущен', {
+          bookId,
+        });
+        if (!options?.suppressSuccessAlert) {
+          Alert.alert('', 'Эта книга уже в библиотеке — открываем её.');
+        }
+        return { stableUri: existing.fileUri, bookId };
+      }
+      logImportStage('Запись книги есть, но файл пропал — импортируем заново', {
+        bookId,
+      });
+    }
+
     const stem = sanitizeFileStem(bookId);
     const fileBase = `${stem}__${shortFileSuffix(bookId)}`;
     const epubDir = `${base}${EPUB_SUBDIR}`;
@@ -129,6 +146,12 @@ export async function importEpubToLibrary(
         fileSizeBytes,
         coverUri,
         addedAt: Date.now(),
+        // Длину spine выставит читалка после open() — upsert её не перезаписывает.
+        totalChapters: 0,
+        // Флаг избранного и soft-delete живут независимо от импорта;
+        // upsert в StorageService их не перезаписывает (deleted_at сбрасывается в NULL).
+        isFavorite: false,
+        deletedAt: null,
       };
       await storage.addBook(row);
       logImportStage('Книга добавлена в базу', { bookId, title: row.title });

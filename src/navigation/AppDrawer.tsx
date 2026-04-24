@@ -6,63 +6,15 @@ import { useMemo } from 'react';
 import { useWindowDimensions } from 'react-native';
 
 import { AppTopBar } from '../components/AppTopBar';
-import { PlaceholderScreen } from '../screens/PlaceholderScreen';
 import { BooksAndDocsScreen } from '../screens/BooksAndDocsScreen';
 import { DebugLogsScreen } from '../screens/DebugLogsScreen';
+import { FavoritesScreen } from '../screens/FavoritesScreen';
+import { ReadingNowScreen } from '../screens/ReadingNowScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { TrashScreen } from '../screens/TrashScreen';
 import { useI18n } from '../i18n';
 import { useTheme } from '../theme';
 import type { DrawerParamList } from './types';
-
-function ReadingNowScreen() {
-  const { t } = useI18n();
-  return (
-    <PlaceholderScreen
-      title={t('screens.readingNow.title')}
-      subtitle={t('screens.readingNow.subtitle')}
-    />
-  );
-}
-
-function FavoritesScreen() {
-  const { t } = useI18n();
-  return (
-    <PlaceholderScreen
-      title={t('screens.favorites.title')}
-      subtitle={t('screens.favorites.subtitle')}
-    />
-  );
-}
-
-function AuthorsScreen() {
-  const { t } = useI18n();
-  return (
-    <PlaceholderScreen
-      title={t('screens.authors.title')}
-      subtitle={t('screens.authors.subtitle')}
-    />
-  );
-}
-
-function CollectionsScreen() {
-  const { t } = useI18n();
-  return (
-    <PlaceholderScreen
-      title={t('screens.collections.title')}
-      subtitle={t('screens.collections.subtitle')}
-    />
-  );
-}
-
-function CartScreen() {
-  const { t } = useI18n();
-  return (
-    <PlaceholderScreen
-      title={t('screens.cart.title')}
-      subtitle={t('screens.cart.subtitle')}
-    />
-  );
-}
 
 const Drawer = createDrawerNavigator<DrawerParamList>();
 
@@ -96,20 +48,6 @@ export function AppDrawer() {
     () => ({
       title: t('drawer.favorites'),
       drawerLabel: t('drawer.favorites'),
-    }),
-    [t]
-  );
-  const authorsOpts = useMemo(
-    () => ({
-      title: t('drawer.authors'),
-      drawerLabel: t('drawer.authors'),
-    }),
-    [t]
-  );
-  const collOpts = useMemo(
-    () => ({
-      title: t('drawer.collections'),
-      drawerLabel: t('drawer.collections'),
     }),
     [t]
   );
@@ -166,17 +104,7 @@ export function AppDrawer() {
         component={FavoritesScreen}
         options={favOpts}
       />
-      <Drawer.Screen
-        name="Authors"
-        component={AuthorsScreen}
-        options={authorsOpts}
-      />
-      <Drawer.Screen
-        name="Collections"
-        component={CollectionsScreen}
-        options={collOpts}
-      />
-      <Drawer.Screen name="Cart" component={CartScreen} options={cartOpts} />
+      <Drawer.Screen name="Cart" component={TrashScreen} options={cartOpts} />
       <Drawer.Screen
         name="DebugLogs"
         component={DebugLogsScreen}

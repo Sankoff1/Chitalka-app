@@ -4,8 +4,6 @@ export type DrawerParamList = {
   ReadingNow: undefined;
   BooksAndDocs: undefined;
   Favorites: undefined;
-  Authors: undefined;
-  Collections: undefined;
   Cart: undefined;
   DebugLogs: undefined;
   Settings: undefined;

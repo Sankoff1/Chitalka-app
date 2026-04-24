@@ -3,8 +3,6 @@
     "readingNow": "Читаю сейчас",
     "books": "Книги и документы",
     "favorites": "Избранное",
-    "authors": "Авторы",
-    "collections": "Коллекции",
     "cart": "Корзина",
     "debugLogs": "Отладочные логи",
     "settings": "Настройки"
@@ -16,19 +14,13 @@
     },
     "favorites": {
       "title": "Избранное",
-      "subtitle": "Избранные материалы."
-    },
-    "authors": {
-      "title": "Авторы",
-      "subtitle": "Список авторов."
-    },
-    "collections": {
-      "title": "Коллекции",
-      "subtitle": "Ваши коллекции."
+      "subtitle": "Избранные книги.",
+      "empty": "Пока нет избранных книг. Откройте меню книги в списке и добавьте её в избранное."
     },
     "cart": {
       "title": "Корзина",
-      "subtitle": "Удалённые элементы."
+      "subtitle": "Удалённые элементы.",
+      "empty": "Корзина пуста."
     }
   },
   "debugLogs": {
@@ -59,7 +51,8 @@
   },
   "books": {
     "empty": "Пока нет добавленных книг. Нажмите «+», чтобы выбрать EPUB.",
-    "addBookA11y": "Добавить книгу EPUB"
+    "addBookA11y": "Добавить книгу EPUB",
+    "readPercent": "{{percent}}% прочитано"
   },
   "reader": {
     "backToLibrary": "← В библиотеку",
@@ -91,7 +84,8 @@
     "unknownAuthor": "Неизвестный автор"
   },
   "common": {
-    "mb": "МБ"
+    "mb": "МБ",
+    "cancel": "Отмена"
   },
   "libraryScreen": {
     "title": "Библиотека",
@@ -102,5 +96,18 @@
     "openMenu": "Открыть меню",
     "addBook": "Добавить книгу",
     "search": "Поиск"
+  },
+  "bookActions": {
+    "title": "Действия с книгой",
+    "addToFavorites": "В избранное",
+    "removeFromFavorites": "Убрать из избранного",
+    "moveToTrash": "В корзину"
+  },
+  "trash": {
+    "restore": "Восстановить",
+    "deleteForever": "Удалить навсегда",
+    "confirmDeleteTitle": "Удалить книгу навсегда?",
+    "confirmDeleteMessage": "Файл книги и обложка будут удалены с устройства. Действие нельзя отменить.",
+    "deleteFailed": "Не удалось удалить книгу."
   }
 }

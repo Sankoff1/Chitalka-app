@@ -162,6 +162,12 @@ export function ReaderScreen({
         setSpine(structure.spine);
         setUnpackedRootUri(structure.unpackedRootUri);
 
+        void storage
+          .setBookTotalChapters(bookId, structure.spine.length)
+          .catch(() => {
+            /* не критично: прогресс-бар в списках просто останется пустым */
+          });
+
         const savedIndex =
           progress != null
             ? clampChapterIndex(progress.lastChapterIndex, structure.spine.length)
@@ -267,14 +273,6 @@ export function ReaderScreen({
     [chapterIndex, pageAnim, persistProgress, phase, runFlipAnim, screenWidth, spine.length, t]
   );
 
-  const onBack = useCallback(() => {
-    void goChapter(chapterIndex - 1);
-  }, [chapterIndex, goChapter]);
-
-  const onForward = useCallback(() => {
-    void goChapter(chapterIndex + 1);
-  }, [chapterIndex, goChapter]);
-
   const onScrollOffsetChange = useCallback(
     (y: number) => {
       latestScrollRef.current = y;
@@ -323,9 +321,6 @@ export function ReaderScreen({
     );
   }
 
-  const canBack = chapterIndex > 0;
-  const canForward = spine.length > 0 && chapterIndex < spine.length - 1;
-
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       {onBackToLibrary ? (
@@ -343,38 +338,6 @@ export function ReaderScreen({
           </Pressable>
         </View>
       ) : null}
-      <View style={styles.toolbar}>
-        <Pressable
-          onPress={onBack}
-          disabled={!canBack || phase === 'loading'}
-          style={({ pressed }) => [
-            styles.navButton,
-            (!canBack || phase === 'loading') && styles.navButtonDisabled,
-            pressed && canBack && phase === 'ready' && styles.navButtonPressed,
-          ]}
-        >
-          <Text style={styles.navButtonText}>{t('reader.back')}</Text>
-        </Pressable>
-        <Text style={styles.chapterHint} numberOfLines={1}>
-          {spine.length
-            ? t('reader.chapterProgress', {
-                current: chapterIndex + 1,
-                total: spine.length,
-              })
-            : ''}
-        </Text>
-        <Pressable
-          onPress={onForward}
-          disabled={!canForward || phase === 'loading'}
-          style={({ pressed }) => [
-            styles.navButton,
-            (!canForward || phase === 'loading') && styles.navButtonDisabled,
-            pressed && canForward && phase === 'ready' && styles.navButtonPressed,
-          ]}
-        >
-          <Text style={styles.navButtonText}>{t('reader.forward')}</Text>
-        </Pressable>
-      </View>
 
       {phase === 'ready' && unpackedRootUri ? (
         <View style={styles.pageHost}>
@@ -401,6 +364,14 @@ export function ReaderScreen({
           <Text style={styles.loaderText}>{t('reader.loading')}</Text>
         </View>
       )}
+
+      {phase === 'ready' && spine.length > 0 ? (
+        <View style={[styles.pageIndicator, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+          <Text style={styles.pageIndicatorText}>
+            {chapterIndex + 1}/{spine.length}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -435,38 +406,17 @@ const styles = StyleSheet.create({
     color: '#1a5f9e',
     fontWeight: '600',
   },
-  toolbar: {
-    flexDirection: 'row',
+  pageIndicator: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingVertical: 10,
-    gap: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ccc',
+    paddingTop: 6,
     backgroundColor: '#fafaf8',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#ddd',
   },
-  navButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    backgroundColor: '#e8e6e1',
-  },
-  navButtonPressed: {
-    opacity: 0.85,
-  },
-  navButtonDisabled: {
-    opacity: 0.45,
-  },
-  navButtonText: {
-    fontSize: 16,
-    color: '#222',
-  },
-  chapterHint: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 14,
+  pageIndicatorText: {
+    fontSize: 13,
     color: '#555',
+    fontVariant: ['tabular-nums'],
   },
   pageHost: {
     flex: 1,

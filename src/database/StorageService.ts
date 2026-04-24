@@ -1,8 +1,12 @@
 import { openDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 
-import type { LibraryBookRecord, ReadingProgress } from '../core/types';
+import type {
+  LibraryBookRecord,
+  LibraryBookWithProgress,
+  ReadingProgress,
+} from '../core/types';
 
-export type { LibraryBookRecord, ReadingProgress };
+export type { LibraryBookRecord, LibraryBookWithProgress, ReadingProgress };
 
 const LOG_PREFIX = '[StorageService]';
 
@@ -76,6 +80,56 @@ type ProgressRow = {
   lastReadTimestamp: number;
 };
 
+type RawBookRow = Omit<LibraryBookRecord, 'isFavorite' | 'deletedAt'> & {
+  isFavorite: number | boolean | null;
+  deletedAt: number | null;
+};
+
+type JoinedBookRow = RawBookRow & {
+  lastChapterIndex: number | null;
+};
+
+function normalizeBookRow(row: RawBookRow): LibraryBookRecord {
+  const totalChapters =
+    typeof row.totalChapters === 'number' && Number.isFinite(row.totalChapters)
+      ? Math.max(0, Math.trunc(row.totalChapters))
+      : 0;
+  const deletedAt =
+    typeof row.deletedAt === 'number' && Number.isFinite(row.deletedAt)
+      ? Math.trunc(row.deletedAt)
+      : null;
+  return {
+    bookId: row.bookId,
+    fileUri: row.fileUri,
+    title: row.title,
+    author: row.author,
+    fileSizeBytes: row.fileSizeBytes,
+    coverUri: row.coverUri,
+    addedAt: row.addedAt,
+    totalChapters,
+    isFavorite: Boolean(row.isFavorite),
+    deletedAt,
+  };
+}
+
+function joinedRowToBookWithProgress(row: JoinedBookRow): LibraryBookWithProgress {
+  const base = normalizeBookRow(row);
+  const lastChapterIndex =
+    typeof row.lastChapterIndex === 'number' && Number.isFinite(row.lastChapterIndex)
+      ? Math.max(0, Math.trunc(row.lastChapterIndex))
+      : null;
+  let progressFraction: number | null = null;
+  if (base.totalChapters > 0 && lastChapterIndex != null) {
+    const raw = (lastChapterIndex + 1) / base.totalChapters;
+    progressFraction = Math.min(1, Math.max(0, raw));
+  }
+  return {
+    ...base,
+    lastChapterIndex,
+    progressFraction,
+  };
+}
+
 /**
  * SQLite-backed persistence for per-book reading progress.
  *
@@ -112,6 +166,20 @@ export class StorageService {
     }
   }
 
+  private async addLibraryColumnIfMissing(
+    database: SQLiteDatabase,
+    column: string,
+    typeClause: string
+  ): Promise<void> {
+    try {
+      await database.execAsync(
+        `ALTER TABLE ${LIBRARY_TABLE} ADD COLUMN ${column} ${typeClause};`
+      );
+    } catch {
+      /* колонка уже есть — SQLite кидает "duplicate column name" */
+    }
+  }
+
   private async openAndMigrate(): Promise<SQLiteDatabase> {
     try {
       const database = await openDatabaseAsync(DATABASE_NAME);
@@ -132,11 +200,32 @@ export class StorageService {
           author TEXT NOT NULL,
           file_size_bytes INTEGER NOT NULL,
           cover_uri TEXT,
-          added_at INTEGER NOT NULL
+          added_at INTEGER NOT NULL,
+          total_chapters INTEGER NOT NULL DEFAULT 0,
+          is_favorite INTEGER NOT NULL DEFAULT 0,
+          deleted_at INTEGER
         );
         CREATE INDEX IF NOT EXISTS idx_${LIBRARY_TABLE}_added
           ON ${LIBRARY_TABLE} (added_at DESC);
       `);
+      // Идемпотентные миграции для установок с ранними версиями таблицы:
+      // колонки добавляются ДО создания индекса по deleted_at, иначе на старых БД
+      // индекс падает с "no such column".
+      await this.addLibraryColumnIfMissing(
+        database,
+        'total_chapters',
+        'INTEGER NOT NULL DEFAULT 0'
+      );
+      await this.addLibraryColumnIfMissing(
+        database,
+        'is_favorite',
+        'INTEGER NOT NULL DEFAULT 0'
+      );
+      await this.addLibraryColumnIfMissing(database, 'deleted_at', 'INTEGER');
+      await database.execAsync(
+        `CREATE INDEX IF NOT EXISTS idx_${LIBRARY_TABLE}_deleted
+          ON ${LIBRARY_TABLE} (deleted_at);`
+      );
       return database;
     } catch (error) {
       logError('openAndMigrate', error);
@@ -211,6 +300,8 @@ export class StorageService {
   async upsertLibraryBook(row: LibraryBookRecord): Promise<void> {
     assertNonEmptyBookId(row.bookId);
     const database = await this.getDatabase();
+    // total_chapters/is_favorite не обновляются через upsert: они живут независимо
+    // от импорта. Повторный импорт восстанавливает книгу из корзины (deleted_at = NULL).
     const statement = await database.prepareAsync(`
       INSERT INTO ${LIBRARY_TABLE} (
         book_id,
@@ -219,15 +310,17 @@ export class StorageService {
         author,
         file_size_bytes,
         cover_uri,
-        added_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        added_at,
+        total_chapters
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(book_id) DO UPDATE SET
         file_uri = excluded.file_uri,
         title = excluded.title,
         author = excluded.author,
         file_size_bytes = excluded.file_size_bytes,
         cover_uri = excluded.cover_uri,
-        added_at = excluded.added_at;
+        added_at = excluded.added_at,
+        deleted_at = NULL;
     `);
     try {
       await statement.executeAsync([
@@ -238,6 +331,7 @@ export class StorageService {
         Math.max(0, Math.trunc(row.fileSizeBytes)),
         row.coverUri,
         Math.trunc(row.addedAt),
+        Math.max(0, Math.trunc(row.totalChapters)),
       ]);
     } catch (error) {
       throw wrapOperationFailure('сохранение книги в библиотеку', error);
@@ -246,25 +340,151 @@ export class StorageService {
     }
   }
 
-  async listLibraryBooks(): Promise<LibraryBookRecord[]> {
+  /**
+   * Обновляет число глав (длину spine) для существующей книги.
+   * Вызывается читалкой после разбора EPUB, чтобы списочные экраны могли показать % прочитанного.
+   */
+  async setBookTotalChapters(bookId: string, totalChapters: number): Promise<void> {
+    assertNonEmptyBookId(bookId);
+    const normalized = Math.max(0, Math.trunc(Number(totalChapters) || 0));
+    const database = await this.getDatabase();
+    const statement = await database.prepareAsync(
+      `UPDATE ${LIBRARY_TABLE} SET total_chapters = ? WHERE book_id = ?;`
+    );
+    try {
+      await statement.executeAsync([normalized, bookId]);
+    } catch (error) {
+      throw wrapOperationFailure('обновление числа глав книги', error);
+    } finally {
+      await statement.finalizeAsync();
+    }
+  }
+
+  async listLibraryBooks(): Promise<LibraryBookWithProgress[]> {
     const database = await this.getDatabase();
     const statement = await database.prepareAsync(`
       SELECT
-        book_id AS bookId,
-        file_uri AS fileUri,
-        title AS title,
-        author AS author,
-        file_size_bytes AS fileSizeBytes,
-        cover_uri AS coverUri,
-        added_at AS addedAt
-      FROM ${LIBRARY_TABLE}
-      ORDER BY added_at DESC;
+        lb.book_id AS bookId,
+        lb.file_uri AS fileUri,
+        lb.title AS title,
+        lb.author AS author,
+        lb.file_size_bytes AS fileSizeBytes,
+        lb.cover_uri AS coverUri,
+        lb.added_at AS addedAt,
+        lb.total_chapters AS totalChapters,
+        lb.is_favorite AS isFavorite,
+        lb.deleted_at AS deletedAt,
+        rp.last_chapter_index AS lastChapterIndex
+      FROM ${LIBRARY_TABLE} AS lb
+      LEFT JOIN ${TABLE_NAME} AS rp ON rp.book_id = lb.book_id
+      WHERE lb.deleted_at IS NULL
+      ORDER BY lb.added_at DESC;
     `);
     try {
-      const result = await statement.executeAsync<LibraryBookRecord>();
-      return await result.getAllAsync();
+      const result = await statement.executeAsync<JoinedBookRow>();
+      const rows = await result.getAllAsync();
+      return rows.map(joinedRowToBookWithProgress);
     } catch (error) {
       throw wrapOperationFailure('список книг библиотеки', error);
+    } finally {
+      await statement.finalizeAsync();
+    }
+  }
+
+  /**
+   * Книги, которые пользователь уже открывал (есть запись прогресса), отсортированные
+   * по времени последнего чтения (свежие сверху). Используется экраном «Читаю сейчас».
+   */
+  async listRecentlyReadBooks(): Promise<LibraryBookWithProgress[]> {
+    const database = await this.getDatabase();
+    const statement = await database.prepareAsync(`
+      SELECT
+        lb.book_id AS bookId,
+        lb.file_uri AS fileUri,
+        lb.title AS title,
+        lb.author AS author,
+        lb.file_size_bytes AS fileSizeBytes,
+        lb.cover_uri AS coverUri,
+        lb.added_at AS addedAt,
+        lb.total_chapters AS totalChapters,
+        lb.is_favorite AS isFavorite,
+        lb.deleted_at AS deletedAt,
+        rp.last_chapter_index AS lastChapterIndex
+      FROM ${LIBRARY_TABLE} AS lb
+      INNER JOIN ${TABLE_NAME} AS rp ON rp.book_id = lb.book_id
+      WHERE lb.deleted_at IS NULL
+      ORDER BY rp.last_read_timestamp DESC;
+    `);
+    try {
+      const result = await statement.executeAsync<JoinedBookRow>();
+      const rows = await result.getAllAsync();
+      return rows.map(joinedRowToBookWithProgress);
+    } catch (error) {
+      throw wrapOperationFailure('список читаемых книг', error);
+    } finally {
+      await statement.finalizeAsync();
+    }
+  }
+
+  /** Книги, отмеченные как избранные. */
+  async listFavoriteBooks(): Promise<LibraryBookWithProgress[]> {
+    const database = await this.getDatabase();
+    const statement = await database.prepareAsync(`
+      SELECT
+        lb.book_id AS bookId,
+        lb.file_uri AS fileUri,
+        lb.title AS title,
+        lb.author AS author,
+        lb.file_size_bytes AS fileSizeBytes,
+        lb.cover_uri AS coverUri,
+        lb.added_at AS addedAt,
+        lb.total_chapters AS totalChapters,
+        lb.is_favorite AS isFavorite,
+        lb.deleted_at AS deletedAt,
+        rp.last_chapter_index AS lastChapterIndex
+      FROM ${LIBRARY_TABLE} AS lb
+      LEFT JOIN ${TABLE_NAME} AS rp ON rp.book_id = lb.book_id
+      WHERE lb.is_favorite = 1 AND lb.deleted_at IS NULL
+      ORDER BY lb.added_at DESC;
+    `);
+    try {
+      const result = await statement.executeAsync<JoinedBookRow>();
+      const rows = await result.getAllAsync();
+      return rows.map(joinedRowToBookWithProgress);
+    } catch (error) {
+      throw wrapOperationFailure('список избранных книг', error);
+    } finally {
+      await statement.finalizeAsync();
+    }
+  }
+
+  /** Книги, перемещённые в корзину. */
+  async listTrashedBooks(): Promise<LibraryBookWithProgress[]> {
+    const database = await this.getDatabase();
+    const statement = await database.prepareAsync(`
+      SELECT
+        lb.book_id AS bookId,
+        lb.file_uri AS fileUri,
+        lb.title AS title,
+        lb.author AS author,
+        lb.file_size_bytes AS fileSizeBytes,
+        lb.cover_uri AS coverUri,
+        lb.added_at AS addedAt,
+        lb.total_chapters AS totalChapters,
+        lb.is_favorite AS isFavorite,
+        lb.deleted_at AS deletedAt,
+        rp.last_chapter_index AS lastChapterIndex
+      FROM ${LIBRARY_TABLE} AS lb
+      LEFT JOIN ${TABLE_NAME} AS rp ON rp.book_id = lb.book_id
+      WHERE lb.deleted_at IS NOT NULL
+      ORDER BY lb.deleted_at DESC;
+    `);
+    try {
+      const result = await statement.executeAsync<JoinedBookRow>();
+      const rows = await result.getAllAsync();
+      return rows.map(joinedRowToBookWithProgress);
+    } catch (error) {
+      throw wrapOperationFailure('список книг в корзине', error);
     } finally {
       await statement.finalizeAsync();
     }
@@ -281,15 +501,18 @@ export class StorageService {
         author AS author,
         file_size_bytes AS fileSizeBytes,
         cover_uri AS coverUri,
-        added_at AS addedAt
+        added_at AS addedAt,
+        total_chapters AS totalChapters,
+        is_favorite AS isFavorite,
+        deleted_at AS deletedAt
       FROM ${LIBRARY_TABLE}
       WHERE book_id = ?
       LIMIT 1;
     `);
     try {
-      const result = await statement.executeAsync<LibraryBookRecord>([bookId]);
+      const result = await statement.executeAsync<RawBookRow>([bookId]);
       const row = await result.getFirstAsync();
-      return row ?? null;
+      return row ? normalizeBookRow(row) : null;
     } catch (error) {
       throw wrapOperationFailure('чтение записи книги', error);
     } finally {
@@ -297,13 +520,82 @@ export class StorageService {
     }
   }
 
+  /** Установить/снять отметку «Избранное». */
+  async setBookFavorite(bookId: string, isFavorite: boolean): Promise<void> {
+    assertNonEmptyBookId(bookId);
+    const database = await this.getDatabase();
+    const statement = await database.prepareAsync(
+      `UPDATE ${LIBRARY_TABLE} SET is_favorite = ? WHERE book_id = ?;`
+    );
+    try {
+      await statement.executeAsync([isFavorite ? 1 : 0, bookId]);
+    } catch (error) {
+      throw wrapOperationFailure('обновление флага избранного', error);
+    } finally {
+      await statement.finalizeAsync();
+    }
+  }
+
+  /** Переместить книгу в корзину (soft-delete). */
+  async moveBookToTrash(bookId: string): Promise<void> {
+    assertNonEmptyBookId(bookId);
+    const database = await this.getDatabase();
+    const statement = await database.prepareAsync(
+      `UPDATE ${LIBRARY_TABLE} SET deleted_at = ? WHERE book_id = ?;`
+    );
+    try {
+      await statement.executeAsync([Date.now(), bookId]);
+    } catch (error) {
+      throw wrapOperationFailure('перемещение книги в корзину', error);
+    } finally {
+      await statement.finalizeAsync();
+    }
+  }
+
+  /** Восстановить книгу из корзины. */
+  async restoreBookFromTrash(bookId: string): Promise<void> {
+    assertNonEmptyBookId(bookId);
+    const database = await this.getDatabase();
+    const statement = await database.prepareAsync(
+      `UPDATE ${LIBRARY_TABLE} SET deleted_at = NULL WHERE book_id = ?;`
+    );
+    try {
+      await statement.executeAsync([bookId]);
+    } catch (error) {
+      throw wrapOperationFailure('восстановление книги из корзины', error);
+    } finally {
+      await statement.finalizeAsync();
+    }
+  }
+
+  /** Полностью удалить запись из библиотеки и прогресс чтения. */
+  async purgeBook(bookId: string): Promise<void> {
+    assertNonEmptyBookId(bookId);
+    const database = await this.getDatabase();
+    const libStatement = await database.prepareAsync(
+      `DELETE FROM ${LIBRARY_TABLE} WHERE book_id = ?;`
+    );
+    const progressStatement = await database.prepareAsync(
+      `DELETE FROM ${TABLE_NAME} WHERE book_id = ?;`
+    );
+    try {
+      await libStatement.executeAsync([bookId]);
+      await progressStatement.executeAsync([bookId]);
+    } catch (error) {
+      throw wrapOperationFailure('окончательное удаление книги', error);
+    } finally {
+      await libStatement.finalizeAsync();
+      await progressStatement.finalizeAsync();
+    }
+  }
+
   /**
-   * Количество книг в локальной библиотеке.
+   * Количество активных книг в локальной библиотеке (без корзины).
    */
   async countLibraryBooks(): Promise<number> {
     const database = await this.getDatabase();
     const statement = await database.prepareAsync(`
-      SELECT COUNT(*) AS cnt FROM ${LIBRARY_TABLE};
+      SELECT COUNT(*) AS cnt FROM ${LIBRARY_TABLE} WHERE deleted_at IS NULL;
     `);
     try {
       const result = await statement.executeAsync<{ cnt: number }>();
