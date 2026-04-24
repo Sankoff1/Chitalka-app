@@ -1,6 +1,24 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import WebView from 'react-native-webview';
+
+import { type ThemeColors, useTheme } from '../theme';
+
+function injectDarkReaderHead(html: string, c: ThemeColors): string {
+  const block = `<style type="text/css" id="chitalka-reader-dark">
+html{background:${c.background}!important;color-scheme:dark;}
+body{background:${c.background}!important;color:${c.text}!important;}
+a{color:${c.topBarText}!important;}
+p,h1,h2,h3,h4,h5,h6,li,td,th,div,span,blockquote,figcaption,dd,dt,label{color:inherit!important;}
+pre,code,samp,kbd{background:rgba(255,255,255,0.08)!important;color:inherit!important;}
+table{color:inherit!important;}
+</style>`;
+  const headClose = /<\/head>/i.exec(html);
+  if (headClose) {
+    return html.slice(0, headClose.index) + block + html.slice(headClose.index);
+  }
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/>${block}</head><body>${html}</body></html>`;
+}
 
 export type ReaderPageDirection = 'prev' | 'next';
 
@@ -30,6 +48,7 @@ export function ReaderView({
   onRequestPageChange,
   onContentReady,
 }: ReaderViewProps) {
+  const { mode, colors } = useTheme();
   const webRef = useRef<WebView>(null);
   const scrollDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onScrollRef = useRef(onScrollOffsetChange);
@@ -38,6 +57,11 @@ export function ReaderView({
   onPageRef.current = onRequestPageChange;
   const onReadyRef = useRef(onContentReady);
   onReadyRef.current = onContentReady;
+
+  const displayHtml = useMemo(
+    () => (mode === 'dark' ? injectDarkReaderHead(html, colors) : html),
+    [colors, html, mode]
+  );
 
   const handleMessage = useCallback((event: { nativeEvent: { data: string } }) => {
     try {
@@ -176,11 +200,14 @@ export function ReaderView({
     <View style={styles.wrap}>
       <WebView
         ref={webRef}
-        key={chapterKey}
-        style={styles.webview}
+        key={`${chapterKey}:${mode}`}
+        style={[
+          styles.webview,
+          { backgroundColor: mode === 'dark' ? colors.background : '#fff' },
+        ]}
         originWhitelist={['*']}
         androidLayerType="hardware"
-        source={{ html, baseUrl }}
+        source={{ html: displayHtml, baseUrl }}
         injectedJavaScript={injectedScrollBridge}
         onMessage={handleMessage}
         onLoadEnd={handleLoadEnd}

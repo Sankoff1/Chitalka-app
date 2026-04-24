@@ -115,6 +115,7 @@ export function FavoritesScreen() {
         isFavorite={item.isFavorite}
         onPress={() => openReader(item)}
         onLongPress={() => setActiveBook(item)}
+        onMenuPress={() => setActiveBook(item)}
       />
     ),
     [openReader]

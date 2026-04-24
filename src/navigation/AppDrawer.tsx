@@ -21,7 +21,7 @@ const Drawer = createDrawerNavigator<DrawerParamList>();
 const DRAWER_TARGET_WIDTH = 288;
 
 export function AppDrawer() {
-  const { colors } = useTheme();
+  const { colors, mode } = useTheme();
   const { t } = useI18n();
   const { width: windowWidth } = useWindowDimensions();
 
@@ -80,11 +80,12 @@ export function AppDrawer() {
         backgroundColor: colors.menuBackground,
         width: drawerWidth,
       },
-      drawerActiveTintColor: colors.topBar,
-      drawerInactiveTintColor: colors.textSecondary,
+      /* В тёмной теме topBar слишком тёмный для подписи на фоне меню — оставляем контраст как у текста. */
+      drawerActiveTintColor: mode === 'dark' ? colors.topBarText : colors.topBar,
+      drawerInactiveTintColor: mode === 'dark' ? colors.text : colors.textSecondary,
       drawerActiveBackgroundColor: `${colors.interactive}55`,
     }),
-    [colors, drawerWidth]
+    [colors, drawerWidth, mode]
   );
 
   return (

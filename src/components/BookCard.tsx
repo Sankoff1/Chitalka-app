@@ -1,3 +1,4 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useI18n } from '../i18n';
@@ -13,6 +14,8 @@ export type BookCardProps = {
   isFavorite?: boolean;
   onPress: () => void;
   onLongPress?: () => void;
+  /** Значок справа на карточке: то же меню, что и по долгому нажатию на карточку. */
+  onMenuPress?: () => void;
 };
 
 function clampFraction(value: number): number {
@@ -30,6 +33,7 @@ export function BookCard({
   isFavorite,
   onPress,
   onLongPress,
+  onMenuPress,
 }: BookCardProps) {
   const { colors } = useTheme();
   const { t } = useI18n();
@@ -39,124 +43,152 @@ export function BookCard({
   const percent = Math.round(fraction * 100);
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      onLongPress={onLongPress}
-      delayLongPress={350}
-      style={({ pressed }) => [
-        styles.card,
+    <View
+      style={[
+        styles.cardRoot,
         { backgroundColor: colors.interactive },
-        pressed && styles.pressed,
       ]}
     >
-      <View style={styles.row}>
-        <View
-          style={[
-            styles.coverWrap,
-            {
-              backgroundColor: colors.menuBackground,
-              borderColor: `${colors.textSecondary}33`,
-            },
-          ]}
-        >
-          {coverUri ? (
-            <Image
-              source={{ uri: coverUri }}
-              style={styles.coverImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.coverFallback}>
-              <View
-                style={[
-                  styles.coverAccent,
-                  { backgroundColor: colors.topBar },
-                ]}
-              />
-              <Text
-                numberOfLines={4}
-                adjustsFontSizeToFit
-                minimumFontScale={0.6}
-                style={[styles.coverTitle, { color: colors.text }]}
-              >
-                {title}
-              </Text>
-              <View
-                style={[
-                  styles.coverRule,
-                  { backgroundColor: `${colors.textSecondary}55` },
-                ]}
-              />
-              <Text
-                numberOfLines={2}
-                style={[styles.coverAuthor, { color: colors.textSecondary }]}
-              >
-                {author}
-              </Text>
-            </View>
-          )}
-          {isFavorite ? (
-            <View style={styles.favoriteBadge} accessibilityLabel="favorite">
-              <Text style={styles.favoriteGlyph}>♥</Text>
-            </View>
-          ) : null}
-        </View>
-        <View style={styles.textBlock}>
-          <Text
-            numberOfLines={2}
-            style={[styles.title, { color: colors.text }]}
+      <Pressable
+        accessibilityRole="button"
+        onPress={onPress}
+        onLongPress={onLongPress}
+        delayLongPress={350}
+        style={({ pressed }) => [
+          styles.cardPressable,
+          pressed && styles.pressed,
+        ]}
+      >
+        <View style={styles.row}>
+          <View
+            style={[
+              styles.coverWrap,
+              {
+                backgroundColor: colors.menuBackground,
+                borderColor: `${colors.textSecondary}33`,
+              },
+            ]}
           >
-            {title}
-          </Text>
-          <Text
-            numberOfLines={2}
-            style={[styles.author, { color: colors.textSecondary }]}
+            {coverUri ? (
+              <Image
+                source={{ uri: coverUri }}
+                style={styles.coverImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.coverFallback}>
+                <View
+                  style={[
+                    styles.coverAccent,
+                    { backgroundColor: colors.topBar },
+                  ]}
+                />
+                <Text
+                  numberOfLines={4}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.6}
+                  style={[styles.coverTitle, { color: colors.text }]}
+                >
+                  {title}
+                </Text>
+                <View
+                  style={[
+                    styles.coverRule,
+                    { backgroundColor: `${colors.textSecondary}55` },
+                  ]}
+                />
+                <Text
+                  numberOfLines={2}
+                  style={[styles.coverAuthor, { color: colors.textSecondary }]}
+                >
+                  {author}
+                </Text>
+              </View>
+            )}
+            {isFavorite ? (
+              <View style={styles.favoriteBadge} accessibilityLabel="favorite">
+                <Text style={styles.favoriteGlyph}>♥</Text>
+              </View>
+            ) : null}
+          </View>
+          <View
+            style={[
+              styles.textBlock,
+              onMenuPress ? styles.textBlockWithMenu : null,
+            ]}
           >
-            {author}
-          </Text>
-          {hasProgress ? (
-            <View
-              style={styles.progressRow}
-              accessibilityRole="progressbar"
-              accessibilityValue={{ min: 0, max: 100, now: percent }}
+            <Text
+              numberOfLines={2}
+              style={[styles.title, { color: colors.text }]}
             >
+              {title}
+            </Text>
+            <Text
+              numberOfLines={2}
+              style={[styles.author, { color: colors.textSecondary }]}
+            >
+              {author}
+            </Text>
+            {hasProgress ? (
               <View
-                style={[
-                  styles.progressTrack,
-                  { backgroundColor: colors.menuBackground },
-                ]}
+                style={styles.progressRow}
+                accessibilityRole="progressbar"
+                accessibilityValue={{ min: 0, max: 100, now: percent }}
               >
                 <View
                   style={[
-                    styles.progressFill,
-                    {
-                      width: `${percent}%`,
-                      backgroundColor: colors.topBar,
-                    },
+                    styles.progressTrack,
+                    { backgroundColor: colors.menuBackground },
                   ]}
-                />
+                >
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${percent}%`,
+                        backgroundColor: colors.topBar,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text
+                  style={[styles.progressLabel, { color: colors.text }]}
+                >
+                  {t('books.readPercent', { percent })}
+                </Text>
               </View>
-              <Text
-                style={[styles.progressLabel, { color: colors.text }]}
-              >
-                {t('books.readPercent', { percent })}
-              </Text>
-            </View>
-          ) : null}
+            ) : null}
+          </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+      {onMenuPress ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('a11y.openMenu')}
+          onPress={onMenuPress}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          style={styles.cardMenuHit}
+        >
+          <MaterialIcons name="info-outline" size={20} color="#FFFFFF" />
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 
+const CARD_INSET = 12;
 const COVER_W = 72;
+const COVER_MENU_BTN = 32;
 
 const styles = StyleSheet.create({
-  card: {
+  cardRoot: {
     borderRadius: 12,
-    padding: 12,
     marginBottom: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  cardPressable: {
+    padding: CARD_INSET,
   },
   pressed: {
     opacity: 0.9,
@@ -223,6 +255,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 14,
   },
+  cardMenuHit: {
+    position: 'absolute',
+    right: 6,
+    top: '50%',
+    marginTop: -COVER_MENU_BTN / 2,
+    width: COVER_MENU_BTN,
+    height: COVER_MENU_BTN,
+    borderRadius: COVER_MENU_BTN / 2,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
   coverImage: {
     width: '100%',
     height: '100%',
@@ -232,6 +277,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: COVER_W * 1.45,
     gap: 4,
+  },
+  textBlockWithMenu: {
+    paddingRight: COVER_MENU_BTN + 10,
   },
   title: {
     fontSize: 17,

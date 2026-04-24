@@ -25,6 +25,7 @@ import {
 import { ReaderView, type ReaderPageDirection } from '../components/ReaderView';
 import { StorageService } from '../database/StorageService';
 import { useI18n } from '../i18n';
+import { useTheme } from '../theme';
 
 export type ReaderScreenProps = {
   bookPath: string;
@@ -83,6 +84,7 @@ export function ReaderScreen({
   onOpened,
 }: ReaderScreenProps) {
   const { t } = useI18n();
+  const { colors, mode } = useTheme();
   const storage = useMemo(() => new StorageService(), []);
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
@@ -520,6 +522,7 @@ export function ReaderScreen({
           styles.pageLayer,
           styles.pageLayerAbsolute,
           isActiveLayer ? styles.pageLayerOutgoing : styles.pageLayerIncoming,
+          { backgroundColor: readerPaperBg },
           layerAnimatedStyle,
         ]}
       >
@@ -548,17 +551,33 @@ export function ReaderScreen({
     );
   };
 
+  const hairlineBorder =
+    mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)';
+  const readerFrameBg = mode === 'dark' ? colors.background : '#ece9e1';
+  const readerPaperBg = mode === 'dark' ? colors.menuBackground : '#ffffff';
+
   if (phase === 'error' && errorText) {
     return (
-      <View style={[styles.centered, { paddingTop: insets.top + 24 }]}>
-        <Text style={styles.errorTitle}>{t('reader.errorTitle')}</Text>
-        <Text style={styles.errorBody}>{errorText}</Text>
+      <View
+        style={[
+          styles.centered,
+          { paddingTop: insets.top + 24, backgroundColor: colors.background },
+        ]}
+      >
+        <Text style={[styles.errorTitle, { color: colors.text }]}>{t('reader.errorTitle')}</Text>
+        <Text style={[styles.errorBody, { color: colors.textSecondary }]}>{errorText}</Text>
         {onBackToLibrary ? (
           <Pressable
             onPress={onBackToLibrary}
-            style={({ pressed }) => [styles.errorBack, pressed && styles.errorBackPressed]}
+            style={({ pressed }) => [
+              styles.errorBack,
+              {
+                backgroundColor: mode === 'dark' ? colors.interactive : '#e8e6e1',
+              },
+              pressed && styles.errorBackPressed,
+            ]}
           >
-            <Text style={styles.errorBackText}>{t('reader.backToBooks')}</Text>
+            <Text style={[styles.errorBackText, { color: colors.text }]}>{t('reader.backToBooks')}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -566,9 +585,17 @@ export function ReaderScreen({
   }
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={[styles.root, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       {onBackToLibrary ? (
-        <View style={styles.libraryBar}>
+        <View
+          style={[
+            styles.libraryBar,
+            {
+              backgroundColor: colors.menuBackground,
+              borderBottomColor: hairlineBorder,
+            },
+          ]}
+        >
           <Pressable
             onPress={onBackToLibrary}
             disabled={phase === 'loading'}
@@ -578,26 +605,44 @@ export function ReaderScreen({
               pressed && phase !== 'loading' && styles.libraryLinkPressed,
             ]}
           >
-            <Text style={styles.libraryLinkText}>{t('reader.backToLibrary')}</Text>
+            <Text
+              style={[
+                styles.libraryLinkText,
+                { color: mode === 'dark' ? colors.text : colors.topBar },
+              ]}
+            >
+              {t('reader.backToLibrary')}
+            </Text>
           </Pressable>
         </View>
       ) : null}
 
       {phase === 'ready' && unpackedRootUri && activeLayer ? (
-        <View style={styles.pageHost}>
+        <View style={[styles.pageHost, { backgroundColor: readerFrameBg }]}>
           {renderReaderLayer('a', layerA)}
           {renderReaderLayer('b', layerB)}
         </View>
       ) : (
         <View style={styles.loaderWrap}>
-          <ActivityIndicator size="large" />
-          <Text style={styles.loaderText}>{t('reader.loading')}</Text>
+          <ActivityIndicator size="large" color={colors.topBar} />
+          <Text style={[styles.loaderText, { color: colors.textSecondary }]}>
+            {t('reader.loading')}
+          </Text>
         </View>
       )}
 
       {phase === 'ready' && spine.length > 0 ? (
-        <View style={[styles.pageIndicator, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-          <Text style={styles.pageIndicatorText}>
+        <View
+          style={[
+            styles.pageIndicator,
+            {
+              paddingBottom: Math.max(insets.bottom, 8),
+              backgroundColor: colors.menuBackground,
+              borderTopColor: hairlineBorder,
+            },
+          ]}
+        >
+          <Text style={[styles.pageIndicatorText, { color: colors.textSecondary }]}>
             {currentChapterIndex + 1}/{spine.length}
           </Text>
         </View>
@@ -609,15 +654,12 @@ export function ReaderScreen({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#f6f6f4',
   },
   libraryBar: {
     paddingHorizontal: 8,
     paddingTop: 6,
     paddingBottom: 4,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ddd',
-    backgroundColor: '#fafaf8',
   },
   libraryLink: {
     alignSelf: 'flex-start',
@@ -633,30 +675,24 @@ const styles = StyleSheet.create({
   },
   libraryLinkText: {
     fontSize: 16,
-    color: '#1a5f9e',
     fontWeight: '600',
   },
   pageIndicator: {
     alignItems: 'center',
     paddingTop: 6,
-    backgroundColor: '#fafaf8',
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#ddd',
   },
   pageIndicatorText: {
     fontSize: 13,
-    color: '#555',
     fontVariant: ['tabular-nums'],
   },
   pageHost: {
     flex: 1,
     overflow: 'hidden',
-    backgroundColor: '#ece9e1',
     position: 'relative',
   },
   pageLayer: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#fff',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.35,
@@ -684,25 +720,21 @@ const styles = StyleSheet.create({
   },
   loaderText: {
     fontSize: 15,
-    color: '#666',
   },
   centered: {
     flex: 1,
     padding: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
   },
   errorTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 12,
-    color: '#111',
     textAlign: 'center',
   },
   errorBody: {
     fontSize: 15,
-    color: '#444',
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -711,14 +743,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 18,
     borderRadius: 8,
-    backgroundColor: '#e8e6e1',
   },
   errorBackPressed: {
     opacity: 0.88,
   },
   errorBackText: {
     fontSize: 16,
-    color: '#222',
     fontWeight: '600',
   },
 });

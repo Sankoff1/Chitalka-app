@@ -39,6 +39,7 @@
     "themeSection": "Тема оформления",
     "themeLight": "Светлая",
     "themeDark": "Тёмная",
+    "darkTheme": "Тёмная тема",
     "languageSection": "Язык интерфейса",
     "languageRu": "Русский",
     "languageEn": "English",
@@ -95,7 +96,9 @@
   "a11y": {
     "openMenu": "Открыть меню",
     "addBook": "Добавить книгу",
-    "search": "Поиск"
+    "search": "Поиск",
+    "languagePicker": "Выбрать язык интерфейса",
+    "dismissOverlay": "Закрыть"
   },
   "bookActions": {
     "title": "Действия с книгой",

@@ -39,6 +39,7 @@
     "themeSection": "Appearance",
     "themeLight": "Light",
     "themeDark": "Dark",
+    "darkTheme": "Dark theme",
     "languageSection": "Interface language",
     "languageRu": "Russian",
     "languageEn": "English",
@@ -95,7 +96,9 @@
   "a11y": {
     "openMenu": "Open menu",
     "addBook": "Add book",
-    "search": "Search"
+    "search": "Search",
+    "languagePicker": "Choose interface language",
+    "dismissOverlay": "Close"
   },
   "bookActions": {
     "title": "Book actions",
