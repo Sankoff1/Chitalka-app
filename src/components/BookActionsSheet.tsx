@@ -127,7 +127,7 @@ export function BookActionsSheet({
             </View>
             <View style={styles.headerText}>
               <Text
-                numberOfLines={2}
+                numberOfLines={3}
                 style={[styles.title, { color: colors.text }]}
               >
                 {title}
@@ -241,9 +241,9 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   title: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
-    lineHeight: 20,
+    lineHeight: 18,
   },
   author: {
     fontSize: 13,

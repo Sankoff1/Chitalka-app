@@ -7,7 +7,8 @@
 
 - `bookCount`, `storageReady`
 - `libraryEpoch`, `bumpLibraryEpoch`
-- `refreshBookCount`, `pickEpubFromToolbar`, `openBooksForSearch`
+- `refreshBookCount`, `pickEpubFromToolbar`
+- `isSearchOpen`, `searchQuery`, `openSearch`, `closeSearch`, `setSearchQuery` — состояние поиска, см. [`library-context-open-books-search.md`](./library-context-open-books-search.md)
 
 ## `useLibrary()`
 

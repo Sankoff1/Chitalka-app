@@ -12,6 +12,7 @@
 |------|-------------------|
 | [entry-01-gesture-handler.md](./entry-01-gesture-handler.md) | Первый импорт `react-native-gesture-handler` |
 | [entry-02-console-capture.md](./entry-02-console-capture.md) | Импорт `installConsoleCapture` и побочный эффект |
+| [entry-04-react-native-screens.md](./entry-04-react-native-screens.md) | `enableScreens` / `enableFreeze` |
 | [entry-03-register-root.md](./entry-03-register-root.md) | `registerRootComponent(App)` |
 
 ### `app-shell` (`App.tsx`)
@@ -94,8 +95,10 @@
 | [library-context-welcome-modal.md](./library-context-welcome-modal.md) | Видимость welcome, `suppressWelcomeForPicker`, `FirstLaunchModal` |
 | [library-context-pick-toolbar.md](./library-context-pick-toolbar.md) | `pickEpubFromToolbar` |
 | [library-context-pick-welcome.md](./library-context-pick-welcome.md) | `pickEpubFromWelcome`, задержка перед пикером |
-| [library-context-open-books-search.md](./library-context-open-books-search.md) | `openBooksForSearch` |
+| [library-context-open-books-search.md](./library-context-open-books-search.md) | Состояние поиска: `isSearchOpen`, `searchQuery`, `openSearch`, `closeSearch`, `setSearchQuery` |
 | [library-context-debug-autoload-effect.md](./library-context-debug-autoload-effect.md) | `useEffect` с `runDebugAutoLoadEpubIfNeeded` |
+| [library-context-restore-last-open.md](./library-context-restore-last-open.md) | `useEffect` автооткрытия последней книги на старте |
+| [library-last-open-book.md](./library-last-open-book.md) | Модуль `src/library/lastOpenBook.ts` — AsyncStorage get/set/clear |
 
 ### `ui-reader-view` / `ui-book-card` / `ui-book-actions-sheet` / `ui-first-launch`
 
@@ -119,7 +122,7 @@
 | [screen-reader-chapter-navigation.md](./screen-reader-chapter-navigation.md) | `goChapter`, назад/вперёд |
 | [screen-reader-render-phases.md](./screen-reader-render-phases.md) | `phase` loading/ready/error, разметка |
 | [screen-books-and-docs.md](./screen-books-and-docs.md) | `BooksAndDocsScreen`: список, epoch, FAB |
-| [screen-settings.md](./screen-settings.md) | `SettingsScreen` |
+| [screen-settings.md](./screen-settings.md) | `SettingsScreen`: Switch темы, язык (Modal якорь, без dim) |
 | [screen-debug-logs.md](./screen-debug-logs.md) | `DebugLogsScreen` |
 | [screen-library-legacy.md](./screen-library-legacy.md) | `LibraryScreen` (не в drawer) |
 | [screen-placeholder.md](./screen-placeholder.md) | Архив: `PlaceholderScreen` удалён из кода |
@@ -141,7 +144,7 @@
 | Файл | Внутренняя единица |
 |------|-------------------|
 | [theme-colors.md](./theme-colors.md) | `colors.ts` |
-| [theme-context.md](./theme-context.md) | `ThemeContext.tsx` |
+| [theme-context.md](./theme-context.md) | `ThemeContext.tsx`: `ThemeProvider`, `useTheme`, AsyncStorage `chitalka_theme_mode` |
 | [theme-barrel.md](./theme-barrel.md) | `src/theme/index.ts` |
 
 ### `debug-*` и ассеты

@@ -10,8 +10,8 @@
 
 | ID | Путь | Назначение |
 |----|------|------------|
-| `entry` | `index.ts` | `gesture-handler` → перехват консоли → `registerRootComponent(App)`. |
-| `app-shell` | `App.tsx` | `SafeAreaProvider` → `ThemeProvider` → `I18nProvider` → `RootNavigator` (статус-бар, Android navigation bar, `NavigationContainer` + `LibraryProvider` + `RootStack`). |
+| `entry` | `index.ts` | `gesture-handler` → перехват консоли → **`react-native-screens`**: `enableScreens(true)`, `enableFreeze(true)` → `registerRootComponent(App)`. |
+| `app-shell` | `App.tsx` | `SafeAreaProvider` → `ThemeProvider` → `I18nProvider` → `RootNavigator` (статус-бар, Android navigation bar с отложенным `setButtonStyleAsync` через rAF + cleanup, `NavigationContainer` + `LibraryProvider` + `RootStack`). |
 
 **Зависимости:** `entry` → `app-shell` → навигация, контексты библиотеки/темы/i18n.
 
@@ -65,7 +65,7 @@
 | ID | Путь | Назначение |
 |----|------|------------|
 | `theme-colors` | `src/theme/colors.ts` | Палитры light/dark, `getColorsForMode`. |
-| `theme-context` | `src/theme/ThemeContext.tsx` | `ThemeProvider`, `useTheme`, переключение режима. |
+| `theme-context` | `src/theme/ThemeContext.tsx` | `ThemeProvider`, `useTheme`, переключение режима; `colors` = `getColorsForMode(mode)` без лишнего `useMemo` (палитры статичны в `colors.ts`); режим в AsyncStorage (`chitalka_theme_mode`). |
 | `theme-barrel` | `src/theme/index.ts` | Экспорт темы. |
 
 **Связи:** `theme-context` → `theme-colors`.
@@ -90,9 +90,10 @@
 
 | ID | Путь | Назначение |
 |----|------|------------|
-| `library-context` | `src/context/LibraryContext.tsx` | Счётчик книг, `storageReady`, `libraryEpoch`, `bumpLibraryEpoch` / `refreshBookCount`, импорт EPUB с тулбара/приветствия, переход в читалку после импорта, `openBooksForSearch` → `BooksAndDocs`, модалка первого запуска; **без** API избранного/корзины (это экраны + `StorageService`). |
+| `library-context` | `src/context/LibraryContext.tsx` | Счётчик книг, `storageReady`, `libraryEpoch`, `bumpLibraryEpoch` / `refreshBookCount`, импорт EPUB с тулбара/приветствия, переход в читалку после импорта, состояние поиска (`isSearchOpen`, `searchQuery`, `openSearch` / `closeSearch` / `setSearchQuery`), модалка первого запуска; автооткрытие последней читаемой книги на старте через `lastOpenBook`; **без** API избранного/корзины (это экраны + `StorageService`). |
+| `library-last-open-book` | `src/library/lastOpenBook.ts` | AsyncStorage-ключ `chitalka_last_open_book_id`: `setLastOpenBookId` / `getLastOpenBookId` / `clearLastOpenBookId`. Выставляется `ReaderScreenWrapper` при монтировании, очищается при возврате в библиотеку; используется `library-context` для автооткрытия книги на следующем запуске. |
 
-**Связи:** → `first-launch-modal`, `debug-autoload`, `storage`, `i18n`, `import-library`, `util-epub-picker`, `nav-ref`.
+**Связи:** `library-context` → `first-launch-modal`, `debug-autoload`, `storage`, `i18n`, `import-library`, `util-epub-picker`, `nav-ref`, `library-last-open-book`; `nav-reader-wrapper` → `library-last-open-book`.
 
 ---
 
@@ -104,7 +105,7 @@
 | `ui-book-card` | `src/components/BookCard.tsx` | Карточка: обложка или **fallback-макет** на месте обложки (заголовок/автор, акцентная полоса), рамка `hairline`; опционально полоса `progress` 0..1, бейдж избранного, `onPress` / `onLongPress`. Размер файла в UI **не** показывается. |
 | `ui-book-actions-sheet` | `src/components/BookActionsSheet.tsx` | Нижний лист действий с книгой (`Modal` + анимация): список `BookActionItem`, обложка/метаданные. |
 | `ui-first-launch` | `src/components/FirstLaunchModal.tsx` | Модалка пустой библиотеки / первого запуска. |
-| `ui-top-bar` | `src/components/AppTopBar.tsx` | Шапка drawer: меню, заголовок, поиск → `openBooksForSearch`. |
+| `ui-top-bar` | `src/components/AppTopBar.tsx` | Шапка drawer: меню, заголовок, кнопка поиска (лупа); по нажатию → `openSearch`, шапка превращается в поле ввода `TextInput` (`searchQuery` → `setSearchQuery`), слева `arrow-back` = `closeSearch`, справа `close` очищает запрос. Скрывается на экранах `Settings` и `DebugLogs` (через `route.name`); для непустых экранов со списком книг лупа показывается при `bookCount > 0`. |
 
 **Связи:** `ui-reader-view` — без импортов проектных модулей (только RN + WebView). Остальные → `theme`, `i18n`; `ui-book-actions-sheet` → `theme`, `i18n`; `ui-top-bar` → `library-context`.
 
@@ -119,7 +120,7 @@
 | `screen-favorites` | `src/screens/FavoritesScreen.tsx` | Избранное; `BookActionsSheet` по long press (снять избранное, корзина + `refreshBookCount`). |
 | `screen-trash` | `src/screens/TrashScreen.tsx` | Корзина (`listTrashedBooks`): восстановление, окончательное удаление (`purgeBook`). |
 | `screen-reader` | `src/screens/ReaderScreen.tsx` | EPUB + spine; **два буферных слоя** WebView (`layerA` / `layerB`, `activeLayerId`): при смене главы неактивный слой получает HTML, ждёт `onContentReady`, затем **перекрёстная анимация** (`Animated`, ~500 ms, opacity/translate + лёгкие «шейды»); жесты только у активного слоя; прогресс и `goChapter` привязаны к `activeLayer.chapterIndex`. |
-| `screen-settings` | `src/screens/SettingsScreen.tsx` | Тема, язык, версия (`expo-constants`). |
+| `screen-settings` | `src/screens/SettingsScreen.tsx` | Тема (`Switch` + `setMode`); язык — `Modal` + якорь `measureInWindow`, список без затемнения, стык с полем, **`FadeInUp`** для появления меню; версия (`expo-constants`). |
 | `screen-debug-logs` | `src/screens/DebugLogsScreen.tsx` | Просмотр буфера логов, экспорт/sharing. |
 | `screen-library-legacy` | `src/screens/LibraryScreen.tsx` | Отдельный экран выбора EPUB (сейчас **нигде не подключён** к `AppDrawer` / `RootStack` — модуль на будущее или внешняя вставка). |
 
@@ -128,7 +129,7 @@
 - `screen-reading-now`, `screen-books`, `screen-favorites` → `ui-book-card`, `ui-book-actions-sheet`, `storage`, `i18n`, `nav-ref`, `theme`, safe-area
 - `screen-trash` → `storage`, `library-context` (`libraryEpoch`, `bumpLibraryEpoch`, `refreshBookCount`), `i18n`, `theme`, FileSystem (удаление файлов при purge), safe-area; свой UI строки списка (не `BookCard`)
 - `screen-reader` → `epub-service`, `ui-reader-view`, `storage`, `i18n`, FileSystem
-- `screen-settings` → `i18n`, `theme`, constants
+- `screen-settings` → `i18n`, `theme`, `react-native-reanimated`, `expo-constants`, `Dimensions` / `Modal` / `Pressable`
 - `screen-debug-logs` → `debug-log-buffer`, `i18n`, `theme`, FileSystem, Sharing
 - `nav-drawer` → перечисленные экраны drawer + `ui-top-bar`
 
@@ -313,12 +314,13 @@ flowchart TB
 | `BooksAndDocsScreen` | BookCard, BookActionsSheet, StorageService, library-context, navigationRef, theme, i18n |
 | `FavoritesScreen` | BookCard, BookActionsSheet, StorageService, library-context, navigationRef, theme, i18n |
 | `TrashScreen` | StorageService, library-context, theme, i18n, FileSystem |
+| `SettingsScreen` | theme, i18n, expo-constants, react-native-reanimated, Modal/Dimensions/Pressable |
 
 ---
 
 ## 14. Внешние границы (npm / Expo)
 
-Ключевые мосты из кода приложения: **`expo-sqlite`**, **`expo-file-system/legacy`**, **`expo-document-picker`**, **`react-native-webview`**, **`react-native-zip-archive`**, **`@react-navigation/*`**, **`AsyncStorage`**, **`expo-asset`**, **`expo-sharing`**, **`expo-constants`**, API **`Animated` / `Easing`** из **`react-native`** (перелистывание глав в `ReaderScreen`). Их не дублируем как внутренние модули — это **зависимости** перечисленных выше единиц.
+Ключевые мосты из кода приложения: **`expo-sqlite`**, **`expo-file-system/legacy`**, **`expo-document-picker`**, **`react-native-webview`**, **`react-native-zip-archive`**, **`@react-navigation/*`**, **`react-native-screens`** (`enableScreens` / `enableFreeze` в `index.ts`), **`AsyncStorage`**, **`expo-asset`**, **`expo-sharing`**, **`expo-constants`**, API **`Animated` / `Easing`** из **`react-native`** (перелистывание глав в `ReaderScreen`), **`react-native-reanimated`** (анимации на `SettingsScreen`). Их не дублируем как внутренние модули — это **зависимости** перечисленных выше единиц.
 
 ---
 
@@ -328,4 +330,4 @@ flowchart TB
 
 ---
 
-*Файл отражает текущее состояние `src/` в рабочей копии (в т.ч. двухслойный ридер, `BookActionsSheet`, обновлённый `BookCard`/`ReaderView`, миграции SQLite через `PRAGMA table_info`). При коммитах обновляйте таблицы, mermaid и `guides/internals/`.*
+*Файл отражает текущее состояние `src/` в рабочей копии (в т.ч. `enableScreens`/`enableFreeze`, правки `App.tsx`/`ThemeContext`/`SettingsScreen`, ридер и библиотека). При коммитах обновляйте таблицы, mermaid и `guides/internals/`.*

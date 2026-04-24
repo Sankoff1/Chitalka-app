@@ -18,7 +18,10 @@
 | `bumpLibraryEpoch()` | Вручную увеличить эпоху (например, импорт вне стандартного потока контекста). |
 | `refreshBookCount()` | Перечитать количество книг из БД. |
 | `pickEpubFromToolbar()` | Полный поток: пикер EPUB → `importEpubToLibrary` → инкремент эпохи, обновление счётчика → `navigateToReader(stableUri, bookId)`. Ошибки пикера — `Alert` с `t(messageKey)`; сбой импорта — сообщение или `library.importFailed`. |
-| `openBooksForSearch()` | Если `navigationRef.isReady()`, навигация на `Main` с вложенным экраном `BooksAndDocs`. |
+| `isSearchOpen: boolean` | Открыта ли строка поиска в `AppTopBar`. |
+| `searchQuery: string` | Текущий запрос — читают экраны со списками книг и фильтруют `title`/`author` без учёта регистра (`String.prototype.toLocaleLowerCase`). |
+| `openSearch()` / `closeSearch()` | Переключают `isSearchOpen`; `closeSearch` дополнительно сбрасывает `searchQuery`. |
+| `setSearchQuery(q)` | Меняет строку запроса (вызывает `AppTopBar` на каждом символе ввода). |
 
 ### `useLibrary()`
 
@@ -41,6 +44,17 @@
 Тот же флаг используется в debug-автозагрузке EPUB: на время `runDebugAutoLoadEpubIfNeeded` модал подавляется, затем в `finally` снимается.
 
 **Подсказки ошибок:** `welcomePickerHint` передаётся в `FirstLaunchModal` как `hint` (красный текст под сообщением); при ошибке импорта также может вызываться `Alert`.
+
+### Автооткрытие последней книги на старте
+
+**Файл:** `src/library/lastOpenBook.ts`. `ReaderScreenWrapper` при монтировании вызывает `setLastOpenBookId(bookId)`, в cleanup — `clearLastOpenBookId()`. Если ОС убила приложение во время чтения, cleanup не успел сработать, и в `LibraryProvider` после `storageReady` срабатывает одноразовый эффект, который:
+
+1. Читает ключ `chitalka_last_open_book_id` из AsyncStorage.
+2. Проверяет через `storage.getLibraryBook(bookId)`, что запись ещё жива (`deletedAt === null`).
+3. Если да — вызывает `navigateToReader(record.fileUri, record.bookId)`.
+4. Если запись пропала или в корзине — чистит ключ и остаётся на первом экране drawer (`ReadingNow`).
+
+В __DEV__ при активной `debug-autoload-epub` эффект пропускается: её автооткрытие уже приводит в читалку.
 
 ---
 
@@ -127,9 +141,9 @@
 
 ### `SettingsScreen`
 
-- **Роль:** настройки приложения.
-- **Действия:** переключение темы (`light` / `dark`), языка (`APP_LOCALES`), отображение версии из `expo-constants`.
-- **Зависимости:** `useTheme`, `useI18n`.
+- **Роль:** настройки приложения (drawer «Настройки»).
+- **Действия:** тема — **`Switch`** и **`setMode`** (персист **`ThemeProvider`** / AsyncStorage, см. [`internals/theme-context.md`](./internals/theme-context.md)); язык — **`Modal`** без затемнения (прозрачная подложка для закрытия по тапу), меню по **`measureInWindow`**, **стыкуется** с полем, при нехватке места — **над** полем; анимация списка — **`FadeInUp.duration(165)`** (сверху вниз); версия — **`expo-constants`**.
+- **Зависимости:** `useTheme`, `useI18n`, `react-native-reanimated`, `expo-constants`, `Modal`, `Dimensions`, `Pressable`, `Fragment`.
 
 ### `DebugLogsScreen`
 

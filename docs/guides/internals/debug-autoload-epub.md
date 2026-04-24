@@ -13,7 +13,7 @@
 
 ## `runDebugAutoLoadEpubIfNeeded`
 
-Загрузка ассета через `expo-asset`, импорт через [`import-library-orchestration.md`](./import-library-orchestration.md) с `suppressSuccessAlert`, открытие reader.
+Идемпотентно гарантирует наличие демо-EPUB в библиотеке: если записи нет — загрузка ассета через `expo-asset`, импорт через [`import-library-orchestration.md`](./import-library-orchestration.md) с `suppressSuccessAlert`. **Читалку не открывает**: переход в читалку управляется автооткрытием последней книги (см. [`library-last-open-book.md`](./library-last-open-book.md) и [`library-context-restore-last-open.md`](./library-context-restore-last-open.md)). Зависит только от `storage`, `locale`, `onImported`.
 
 ## Связи
 

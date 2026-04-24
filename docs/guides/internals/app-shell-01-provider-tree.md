@@ -7,6 +7,8 @@
 
 Оборачивает всё приложение: `SafeAreaProvider` → `ThemeProvider` → `I18nProvider` → `RootNavigator`.
 
+`ThemeProvider` после монтирования подтягивает сохранённый **режим темы** из AsyncStorage (см. [`theme-context.md`](./theme-context.md)).
+
 ## Инварианты
 
 - Тема и i18n доступны **внутри** `RootNavigator` и всех экранов.

@@ -31,8 +31,10 @@
 
 - **`ThemeMode`**: `'light' | 'dark'` (`colors.ts`).
 - Палитры: `lightThemeColors`, `darkThemeColors`, переключение через **`getColorsForMode(mode)`**.
-- **`ThemeProvider`**: состояние `mode` (по умолчанию `initialMode = 'light'`). **Персистенции темы в storage нет** — только in-memory + опциональный `initialMode` снаружи.
+- **`ThemeProvider`**: стартовый `mode` из пропа **`initialMode`** (по умолчанию `'light'`); после монтирования **`useEffect`** читает AsyncStorage (`chitalka_theme_mode`) и применяет только **`'light'`** / **`'dark'`**. **`setMode`** и **`toggleTheme`** пишут в storage. Подробности — [`internals/theme-context.md`](./internals/theme-context.md).
+- **`colors`**: **`getColorsForMode(mode)`** — ссылки на палитры в `colors.ts` статичны; отдельный `useMemo` в провайдере только для объекта значения контекста, не для вычисления `colors`.
 - **`useTheme()`** возвращает `{ mode, colors, setMode, toggleTheme }`. Стили экранов и компонентов обычно берут **`colors`** из этого хука, а не импортируют константы напрямую (если не нужен статический снимок).
+- **UI темы в настройках:** экран **`SettingsScreen`** — переключатель **`Switch`** (см. [`internals/screen-settings.md`](./internals/screen-settings.md)).
 
 ## Отладка (`src/debug/`)
 
@@ -52,8 +54,8 @@
 
 - **`DEBUG_AUTO_LOAD_EPUB_ENABLED`** (`true`/`false` в коде) — главный выключатель без правок `LibraryContext`.
 - Активно только если **`__DEV__`**, флаг включён и **`Platform.OS` — `android` или `ios`** (не web).
-- **`runDebugAutoLoadEpubIfNeeded`**: ассет `assets/debug/ebook.demo.epub` через `expo-asset`, импорт в библиотеку с фиксированным **`DEBUG_DEMO_BOOK_ID`**, открытие ридера.
-- **Когда выполняется**: в **`LibraryProvider`** (`LibraryContext.tsx`) в `useEffect`, зависящем от `storageReady`, `locale`, `storage`, `openReader`, `refreshBookCount`. Условия: `storageReady`, активная автозагрузка по флагам/платформе, **`debugAutoLoadStarted` ref** — эффект **один раз за жизнь провайдера**. На время прогона подавляется welcome/picker (`suppressWelcomeForPicker`).
+- **`runDebugAutoLoadEpubIfNeeded`**: ассет `assets/debug/ebook.demo.epub` через `expo-asset`, идемпотентный импорт в библиотеку с фиксированным **`DEBUG_DEMO_BOOK_ID`**. Читалку **сама не открывает** — открытие управляется отдельным эффектом автооткрытия последней книги (см. `src/library/lastOpenBook.ts`): если перед закрытием приложения пользователь был в читалке, книга откроется; если в меню — остаётся `ReadingNow`.
+- **Когда выполняется**: в **`LibraryProvider`** (`LibraryContext.tsx`) в `useEffect`, зависящем от `storageReady`, `locale`, `storage`, `refreshBookCount`. Условия: `storageReady`, активная автозагрузка по флагам/платформе, **`debugAutoLoadStarted` ref** — эффект **один раз за жизнь провайдера**. На время прогона подавляется welcome/picker (`suppressWelcomeForPicker`).
 
 ### Типы ассета EPUB
 
@@ -85,4 +87,4 @@
 
 ---
 
-При добавлении строк: **оба JSON**, ключи с **точками** в коде = вложенность в JSON; в UI — **`t` из `useI18n`**, вне React — **`tSync`**. Тема — **`useTheme().colors`** и **`mode`/`toggleTheme`**. Логи — лимит **4000**, консоль — **один раз**. Демо-EPUB — только **dev + Android/iOS + флаг**, триггер в **`LibraryContext` после `storageReady`**. Сборки: **`app.json` / `eas.json` / `metro.config.js`**, нативный Android — скрипт лицензий/SDK при необходимости.
+При добавлении строк: **оба JSON**, ключи с **точками** в коде = вложенность в JSON; в UI — **`t` из `useI18n`**, вне React — **`tSync`**. Тема — **`useTheme().colors`**, **`mode`**, **`setMode`/`toggleTheme`**; выбранный режим **персистится** в AsyncStorage (`chitalka_theme_mode`, см. [`internals/theme-context.md`](./internals/theme-context.md)); на экране настроек — **`Switch`** (см. [`internals/screen-settings.md`](./internals/screen-settings.md)). Логи — лимит **4000**, консоль — **один раз**. Демо-EPUB — только **dev + Android/iOS + флаг**, триггер в **`LibraryContext` после `storageReady`**. Сборки: **`app.json` / `eas.json` / `metro.config.js`**, нативный Android — скрипт лицензий/SDK при необходимости.

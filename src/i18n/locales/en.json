@@ -97,8 +97,13 @@
     "openMenu": "Open menu",
     "addBook": "Add book",
     "search": "Search",
+    "closeSearch": "Close search",
     "languagePicker": "Choose interface language",
     "dismissOverlay": "Close"
+  },
+  "search": {
+    "placeholder": "Search by title or author",
+    "noResults": "Nothing found. Try a different query."
   },
   "bookActions": {
     "title": "Book actions",

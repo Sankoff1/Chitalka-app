@@ -19,7 +19,8 @@ import {
 import { StorageService } from '../database/StorageService';
 import { useI18n } from '../i18n';
 import { importEpubToLibrary } from '../library/importEpubToLibrary';
-import { navigationRef, navigateToReader } from '../navigation/navigationRef';
+import { clearLastOpenBookId, getLastOpenBookId } from '../library/lastOpenBook';
+import { navigateToReader } from '../navigation/navigationRef';
 import { pickEpubAsset } from '../utils/epubPicker';
 
 type LibraryContextValue = {
@@ -31,7 +32,13 @@ type LibraryContextValue = {
   bumpLibraryEpoch: () => void;
   refreshBookCount: () => Promise<void>;
   pickEpubFromToolbar: () => Promise<void>;
-  openBooksForSearch: () => void;
+  /** Открыта ли строка поиска в шапке. */
+  isSearchOpen: boolean;
+  /** Текущий запрос поиска (применяется ко всем экранам со списками книг). */
+  searchQuery: string;
+  openSearch: () => void;
+  closeSearch: () => void;
+  setSearchQuery: (q: string) => void;
 };
 
 const LibraryContext = createContext<LibraryContextValue | null>(null);
@@ -46,7 +53,10 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [welcomePickerHint, setWelcomePickerHint] = useState<string | null>(null);
   /** На Android системный document picker часто не показывается поверх RN `Modal` — временно скрываем окно. */
   const [suppressWelcomeForPicker, setSuppressWelcomeForPicker] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQueryState] = useState('');
   const debugAutoLoadStarted = useRef(false);
+  const lastOpenRestoreAttempted = useRef(false);
 
   const refreshBookCount = useCallback(async () => {
     try {
@@ -97,7 +107,6 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         await runDebugAutoLoadEpubIfNeeded({
           storage,
           locale,
-          openReader,
           onImported: () => {
             setLibraryEpoch((n) => n + 1);
           },
@@ -112,7 +121,36 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         setSuppressWelcomeForPicker(false);
       }
     })();
-  }, [locale, openReader, refreshBookCount, storage, storageReady]);
+  }, [locale, refreshBookCount, storage, storageReady]);
+
+  /* Автооткрытие последней читаемой книги при запуске приложения: если в прошлой
+     сессии читалка была смонтирована, `lastOpenBook` остался выставленным — открываем
+     ту же книгу. Если пользователь вышел в меню, ключ был очищен и мы остаёмся на
+     «Читаю сейчас» (первый экран drawer по умолчанию). */
+  useEffect(() => {
+    if (!storageReady || lastOpenRestoreAttempted.current) {
+      return;
+    }
+    lastOpenRestoreAttempted.current = true;
+    void (async () => {
+      try {
+        const bookId = await getLastOpenBookId();
+        if (!bookId) {
+          return;
+        }
+        const record = await storage.getLibraryBook(bookId);
+        if (!record || record.deletedAt != null) {
+          await clearLastOpenBookId();
+          return;
+        }
+        openReader(record.fileUri, record.bookId);
+      } catch (e) {
+        if (__DEV__) {
+          console.warn('[Chitalka][last-open]', e);
+        }
+      }
+    })();
+  }, [openReader, storage, storageReady]);
 
   const pickEpubFromToolbar = useCallback(async () => {
     try {
@@ -182,11 +220,17 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     }
   }, [locale, openReader, refreshBookCount, storage, t]);
 
-  const openBooksForSearch = useCallback(() => {
-    if (!navigationRef.isReady()) {
-      return;
-    }
-    navigationRef.navigate('Main', { screen: 'BooksAndDocs' });
+  const openSearch = useCallback(() => {
+    setIsSearchOpen(true);
+  }, []);
+
+  const closeSearch = useCallback(() => {
+    setIsSearchOpen(false);
+    setSearchQueryState('');
+  }, []);
+
+  const setSearchQuery = useCallback((q: string) => {
+    setSearchQueryState(q);
   }, []);
 
   const value = useMemo(
@@ -197,15 +241,23 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       bumpLibraryEpoch,
       refreshBookCount,
       pickEpubFromToolbar,
-      openBooksForSearch,
+      isSearchOpen,
+      searchQuery,
+      openSearch,
+      closeSearch,
+      setSearchQuery,
     }),
     [
       bookCount,
       bumpLibraryEpoch,
+      closeSearch,
+      isSearchOpen,
       libraryEpoch,
-      openBooksForSearch,
+      openSearch,
       pickEpubFromToolbar,
       refreshBookCount,
+      searchQuery,
+      setSearchQuery,
       storageReady,
     ]
   );

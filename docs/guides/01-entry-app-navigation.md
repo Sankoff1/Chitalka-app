@@ -12,7 +12,8 @@
 
 1. **`import 'react-native-gesture-handler'`** — обязательно первым в entry (требование библиотеки жестов для корректной работы drawer/stack и жестов навигации).
 2. **`import './src/debug/installConsoleCapture'`** — при загрузке модуля вызывается **`installConsoleCapture()`** в конце файла: оборачиваются `console.log/info/warn/error/debug`, сообщения дублируются в буфер отладочных логов (`debugLogAppend`). Повторный импорт идемпотентен (флаг на `globalThis`).
-3. **`registerRootComponent(App)`** — регистрирует `App` из `./App` как корневой компонент (`AppRegistry` / окружение Expo).
+3. **`enableScreens(true)`** и **`enableFreeze(true)`** из **`react-native-screens`** — нативные экраны навигации и заморозка неактивных веток стека (до монтирования корня).
+4. **`registerRootComponent(App)`** — регистрирует `App` из `./App` как корневой компонент (`AppRegistry` / окружение Expo).
 
 ### `App.tsx`
 
@@ -21,17 +22,17 @@
 | Уровень | Компонент | Назначение |
 |---------|-----------|------------|
 | 1 | `SafeAreaProvider` | инсеты safe area для потомков |
-| 2 | `ThemeProvider` | тема (`useTheme`: `mode`, `colors`, …) |
+| 2 | `ThemeProvider` | тема (`useTheme`: `mode`, `colors`, …); после старта подгружается сохранённый режим из AsyncStorage (`chitalka_theme_mode`, см. [`internals/theme-context.md`](./internals/theme-context.md)) |
 | 3 | `I18nProvider` | локализация (`useI18n`) |
 | 4 | `RootNavigator` | связка статус-бара, Android navigation bar, **`NavigationContainer`**, библиотека |
 
 Внутри `RootNavigator`:
 
 - `View` с фоном `colors.background`.
-- `AndroidNavigationBar` — только Android: прозрачный фон панели навигации, overlay-swipe; стиль кнопок (светлые/тёмные) синхронизирован с `mode` темы.
+- `AndroidNavigationBar` — только Android: прозрачный фон панели навигации, overlay-swipe; стиль кнопок (светлые/тёмные) синхронизирован с `mode` темы через **`requestAnimationFrame`** + cleanup (см. код `App.tsx`).
 - `StatusBar` из `expo-status-bar` — стиль контраста к теме.
 - **`NavigationContainer`** с `ref={navigationRef}` и **`onReady={flushReaderNavigationIfPending}`** — критично для отложенных переходов на `Reader` (см. раздел про `navigationRef.ts`).
-- **`LibraryProvider`** обёрнут **внутри** `NavigationContainer` (не снаружи): контекст библиотеки и модалка первого запуска живут под готовым контейнером навигации; методы вроде `openBooksForSearch` используют `navigationRef`, который привязан к этому же контейнеру.
+- **`LibraryProvider`** обёрнут **внутри** `NavigationContainer` (не снаружи): контекст библиотеки и модалка первого запуска живут под готовым контейнером навигации; методы вроде `pickEpubFromToolbar` используют `navigationRef` (через `navigateToReader`), который привязан к этому же контейнеру.
 
 Итог для агентов: менять порядок импортов в `index.ts` (особенно gesture-handler) или выносить `LibraryProvider` выше `NavigationContainer` без пересмотра `navigationRef` / `onReady` нельзя без регрессий.
 
@@ -43,10 +44,10 @@
 
 | | |
 |--|--|
-| **Назначение** | Единственная точка входа JS: жесты, захват консоли, регистрация корня. |
+| **Назначение** | Единственная точка входа JS: жесты, захват консоли, нативные экраны навигации, регистрация корня. |
 | **Публичный API** | Нет экспортов; побочные эффекты только через импорты и `registerRootComponent`. |
-| **Ключевое поведение** | Gesture handler → консоль → Expo root. |
-| **Зависимости внутрь** | `react-native-gesture-handler`, `./src/debug/installConsoleCapture`, `expo`, `./App`. |
+| **Ключевое поведение** | Gesture handler → консоль → `enableScreens` / `enableFreeze` → Expo root. |
+| **Зависимости внутрь** | `react-native-gesture-handler`, `./src/debug/installConsoleCapture`, `react-native-screens`, `expo`, `./App`. |
 | **Наружу** | Среда выполнения React Native / Expo. |
 | **Подводные камни** | Без первого импорта gesture-handler навигация с жестами может вести себя некорректно. |
 
@@ -86,8 +87,8 @@
 | **Публичный API** | `navigationRef`, `flushReaderNavigationIfPending()`, `navigateToReader(bookPath, bookId)`. |
 | **Ключевое поведение** | `createNavigationContainerRef<RootStackParamList>()`. Перед переходом на `Reader` параметры кладутся в `pendingReader`; `flushReaderNavigationIfPending` при `isReady()` делает `navigate('Reader', p)` и сбрасывает очередь. `navigateToReader` сначала пытается flush; если контейнер ещё не готов — до 50 попыток с интервалом 50 ms, иначе предупреждение в консоль и сброс `pendingReader`. |
 | **Зависимости внутрь** | `@react-navigation/native`, `./types`. |
-| **Наружу** | `App.tsx` (`ref`, `onReady`), `LibraryContext` (`navigateToReader`, `openBooksForSearch`), другие вызовы императивной навигации. |
-| **Подводные камни** | **`navigateToReader` без готового контейнера** полагается на `onReady` + таймеры; если убрать `onReady` или ref с контейнера, переход из импорта/пикера может не произойти. **`openBooksForSearch`** при `!navigationRef.isReady()` просто выходит — молчаливый no-op. Дублирующие контейнеры с одним ref не создавать. |
+| **Наружу** | `App.tsx` (`ref`, `onReady`), `LibraryContext` (`navigateToReader` в потоках импорта и автооткрытия), другие вызовы императивной навигации. |
+| **Подводные камни** | **`navigateToReader` без готового контейнера** полагается на `onReady` + таймеры; если убрать `onReady` или ref с контейнера, переход из импорта/пикера может не произойти. Дублирующие контейнеры с одним ref не создавать. |
 
 ---
 
@@ -162,13 +163,14 @@
 
 ---
 
-## 4. AppTopBar: поиск и `openBooksForSearch`
+## 4. AppTopBar: поиск в шапке
 
-- **Когда показывается иконка поиска**: **`bookCount > 0`** из **`useLibrary()`** (`const showSearch = bookCount > 0`). Пустая библиотека — слот справа пустой (не ренерится кнопка).
-- **По нажатию**: вызывается **`openBooksForSearch`** из контекста **без аргументов** (передаётся как `onPress={openBooksForSearch}`).
-- **Реализация в `LibraryContext`**: если **`!navigationRef.isReady()`** — **немедленный return** (ничего не происходит). Иначе **`navigationRef.navigate('Main', { screen: 'BooksAndDocs' })`** — переход к корню стека `Main` и вложенному экрану drawer **`BooksAndDocs`** (список книг/документов для поиска и работы с библиотекой).
+- **Когда показывается лупа**: экран **поддерживает поиск** (не `Settings` и не `DebugLogs` — проверка по `route.name` из `DrawerHeaderProps`) **И** `bookCount > 0` из `useLibrary()`. На непустых «книжных» экранах — лупа справа; на `Settings` / `DebugLogs` — правый слот всегда пустой.
+- **По нажатию лупы**: `openSearch()` из `LibraryContext` (`isSearchOpen = true`). Шапка перестраивается: слева `arrow-back` (`closeSearch`), в центре `TextInput` (`searchQuery` ↔ `setSearchQuery`, `autoFocus` через `setTimeout(50)`), справа крестик очищает запрос.
+- **Закрытие поиска**: `closeSearch()` обнуляет и `isSearchOpen`, и `searchQuery`. Кроме того, если пользователь переключается на экран без поиска, `AppTopBar` через `useEffect` сам вызывает `closeSearch()`, чтобы состояние не «прилипло».
+- **Фильтрация списков**: каждый экран drawer со списком книг (`ReadingNow`, `BooksAndDocs`, `Favorites`, `Cart`) читает `searchQuery` и фильтрует коллекцию по `title`/`author` через `toLocaleLowerCase().includes(...)`; при пустом результате показывает `t('search.noResults')`.
 
-Для агентов: при багах «поиск не открывается» проверять готовность навигации, ненулевой `bookCount` и то, что имя вложенного экрана всё ещё **`BooksAndDocs`** и совпадает с `DrawerParamList`.
+Для агентов: при багах «поиск не открывается» проверять, что `route.name` не попал в `NON_SEARCHABLE_ROUTES`, `bookCount > 0`, а при «список не фильтруется» — что экран подписан на `searchQuery` из `useLibrary()`.
 
 ---
 

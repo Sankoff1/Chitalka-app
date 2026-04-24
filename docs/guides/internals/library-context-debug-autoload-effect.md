@@ -9,7 +9,7 @@
 
 ## Действия
 
-`suppressWelcomeForPicker` на время; `runDebugAutoLoadEpubIfNeeded` с `storage`, `locale`, `openReader`, `onImported`; затем `refreshBookCount`, dismiss welcome; `finally` снимает suppress.
+`suppressWelcomeForPicker` на время; `runDebugAutoLoadEpubIfNeeded` с `storage`, `locale`, `onImported` (без `openReader` — функция только импортирует книгу, если её нет); затем `refreshBookCount`, dismiss welcome; `finally` снимает suppress. Открытие читалки после импорта отдано в [`library-context-restore-last-open.md`](./library-context-restore-last-open.md): если пользователь перед закрытием был в читалке, ключ `lastOpenBook` остался выставленным и следующий запуск откроет ту же книгу; если он был в меню — остаёмся на «Читаю сейчас».
 
 ## Связи
 

@@ -97,8 +97,13 @@
     "openMenu": "Открыть меню",
     "addBook": "Добавить книгу",
     "search": "Поиск",
+    "closeSearch": "Закрыть поиск",
     "languagePicker": "Выбрать язык интерфейса",
     "dismissOverlay": "Закрыть"
+  },
+  "search": {
+    "placeholder": "Поиск по названию или автору",
+    "noResults": "Ничего не найдено. Попробуйте изменить запрос."
   },
   "bookActions": {
     "title": "Действия с книгой",

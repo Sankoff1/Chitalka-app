@@ -1,5 +1,9 @@
 import 'react-native-gesture-handler';
 import './src/debug/installConsoleCapture';
+import { enableFreeze, enableScreens } from 'react-native-screens';
+
+enableScreens(true);
+enableFreeze(true);
 
 import { registerRootComponent } from 'expo';
 

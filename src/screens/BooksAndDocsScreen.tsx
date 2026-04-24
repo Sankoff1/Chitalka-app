@@ -24,8 +24,13 @@ export function BooksAndDocsScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
-  const { pickEpubFromToolbar, libraryEpoch, bumpLibraryEpoch, refreshBookCount } =
-    useLibrary();
+  const {
+    pickEpubFromToolbar,
+    libraryEpoch,
+    bumpLibraryEpoch,
+    refreshBookCount,
+    searchQuery,
+  } = useLibrary();
   const storage = useMemo(() => new StorageService(), []);
   const [books, setBooks] = useState<LibraryBookWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,6 +120,18 @@ export function BooksAndDocsScreen() {
   const fabBottom = insets.bottom + 16;
   const listPaddingBottom = fabBottom + 56 + 16;
 
+  const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
+  const visibleBooks = useMemo(() => {
+    if (!normalizedQuery) {
+      return books;
+    }
+    return books.filter(
+      (b) =>
+        b.title.toLocaleLowerCase().includes(normalizedQuery) ||
+        b.author.toLocaleLowerCase().includes(normalizedQuery)
+    );
+  }, [books, normalizedQuery]);
+
   const renderItem = useCallback(
     ({ item }: { item: LibraryBookWithProgress }) => (
       <BookCard
@@ -139,7 +156,7 @@ export function BooksAndDocsScreen() {
         </View>
       ) : (
         <FlatList
-          data={books}
+          data={visibleBooks}
           keyExtractor={(item) => item.bookId}
           renderItem={renderItem}
           contentContainerStyle={[
@@ -148,7 +165,7 @@ export function BooksAndDocsScreen() {
           ]}
           ListEmptyComponent={
             <Text style={[styles.empty, { color: colors.textSecondary }]}>
-              {t('books.empty')}
+              {normalizedQuery ? t('search.noResults') : t('books.empty')}
             </Text>
           }
         />

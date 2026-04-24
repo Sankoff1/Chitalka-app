@@ -1,7 +1,9 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -12,6 +14,8 @@ import {
   type ThemeMode,
   getColorsForMode,
 } from './colors';
+
+const THEME_MODE_STORAGE_KEY = 'chitalka_theme_mode';
 
 type ThemeContextValue = {
   mode: ThemeMode;
@@ -31,13 +35,53 @@ export function ThemeProvider({
   children,
   initialMode = 'light',
 }: ThemeProviderProps) {
-  const [mode, setMode] = useState<ThemeMode>(initialMode);
+  const [mode, setModeState] = useState<ThemeMode>(initialMode);
 
-  const colors = useMemo(() => getColorsForMode(mode), [mode]);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const stored = await AsyncStorage.getItem(THEME_MODE_STORAGE_KEY);
+        console.log('[theme] hydrate read', { stored });
+        if (!cancelled && (stored === 'light' || stored === 'dark')) {
+          setModeState(stored);
+        }
+      } catch (err) {
+        console.log('[theme] hydrate error', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const persistMode = useCallback(async (next: ThemeMode) => {
+    try {
+      await AsyncStorage.setItem(THEME_MODE_STORAGE_KEY, next);
+      console.log('[theme] persist ok', { next });
+    } catch (err) {
+      console.log('[theme] persist error', err);
+    }
+  }, []);
+
+  const setMode = useCallback(
+    (next: ThemeMode) => {
+      setModeState(next);
+      void persistMode(next);
+    },
+    [persistMode]
+  );
+
+  /** Ссылки на палитры статичны (colors.ts) — без лишнего useMemo на каждый рендер. */
+  const colors = getColorsForMode(mode);
 
   const toggleTheme = useCallback(() => {
-    setMode((m) => (m === 'light' ? 'dark' : 'light'));
-  }, []);
+    setModeState((m) => {
+      const next = m === 'light' ? 'dark' : 'light';
+      void persistMode(next);
+      return next;
+    });
+  }, [persistMode]);
 
   const value = useMemo(
     () => ({
@@ -46,7 +90,7 @@ export function ThemeProvider({
       setMode,
       toggleTheme,
     }),
-    [colors, mode, toggleTheme]
+    [colors, mode, setMode, toggleTheme]
   );
 
   return (

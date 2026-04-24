@@ -35,15 +35,25 @@ function AndroidNavigationBar() {
     if (Platform.OS !== 'android') {
       return;
     }
-    void (async () => {
-      try {
-        await NavigationBar.setButtonStyleAsync(
-          mode === 'dark' ? 'light' : 'dark'
-        );
-      } catch {
-        // ignore
-      }
-    })();
+    let cancelled = false;
+    const frame = requestAnimationFrame(() => {
+      void (async () => {
+        if (cancelled) {
+          return;
+        }
+        try {
+          await NavigationBar.setButtonStyleAsync(
+            mode === 'dark' ? 'light' : 'dark'
+          );
+        } catch {
+          // ignore
+        }
+      })();
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
   }, [mode]);
 
   return null;

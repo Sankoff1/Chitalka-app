@@ -1,8 +1,10 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -22,7 +24,13 @@ export function ReadingNowScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
-  const { libraryEpoch, bumpLibraryEpoch, refreshBookCount } = useLibrary();
+  const {
+    pickEpubFromToolbar,
+    libraryEpoch,
+    bumpLibraryEpoch,
+    refreshBookCount,
+    searchQuery,
+  } = useLibrary();
   const storage = useMemo(() => new StorageService(), []);
   const [books, setBooks] = useState<LibraryBookWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,6 +133,21 @@ export function ReadingNowScreen() {
     [openReader]
   );
 
+  const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
+  const visibleBooks = useMemo(() => {
+    if (!normalizedQuery) {
+      return books;
+    }
+    return books.filter(
+      (b) =>
+        b.title.toLocaleLowerCase().includes(normalizedQuery) ||
+        b.author.toLocaleLowerCase().includes(normalizedQuery)
+    );
+  }, [books, normalizedQuery]);
+
+  const fabBottom = insets.bottom + 16;
+  const listPaddingBottom = fabBottom + 56 + 16;
+
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       {loading ? (
@@ -133,20 +156,35 @@ export function ReadingNowScreen() {
         </View>
       ) : (
         <FlatList
-          data={books}
+          data={visibleBooks}
           keyExtractor={(item) => item.bookId}
           renderItem={renderItem}
           contentContainerStyle={[
             styles.listContent,
-            { paddingBottom: insets.bottom + 16 },
+            { paddingBottom: listPaddingBottom },
           ]}
           ListEmptyComponent={
             <Text style={[styles.empty, { color: colors.textSecondary }]}>
-              {t('screens.readingNow.subtitle')}
+              {normalizedQuery
+                ? t('search.noResults')
+                : t('screens.readingNow.subtitle')}
             </Text>
           }
         />
       )}
+      <Pressable
+        accessibilityLabel={t('books.addBookA11y')}
+        onPress={() => {
+          void pickEpubFromToolbar();
+        }}
+        style={({ pressed }) => [
+          styles.fab,
+          { bottom: fabBottom, backgroundColor: colors.topBar },
+          pressed && styles.fabPressed,
+        ]}
+      >
+        <MaterialIcons name="add" size={30} color={colors.topBarText} />
+      </Pressable>
       <BookActionsSheet
         visible={activeBook !== null}
         title={activeBook?.title ?? ''}
@@ -177,5 +215,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     fontSize: 16,
     lineHeight: 22,
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+  },
+  fabPressed: {
+    opacity: 0.9,
   },
 });

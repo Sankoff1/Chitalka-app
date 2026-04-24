@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Constants from 'expo-constants';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useRef, useState } from 'react';
 import {
   Dimensions,
   Modal,
@@ -11,12 +11,13 @@ import {
   Text,
   View,
 } from 'react-native';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 
 import { APP_LOCALES, useI18n, type AppLocale } from '../i18n';
 import { useTheme } from '../theme';
 
-/** Высота панели: две строки ~48px + разделитель. */
-const LANGUAGE_PANEL_ESTIMATE = 102;
+/** Две строки по 48px + разделитель. */
+const LANGUAGE_MENU_ESTIMATE = 97;
 
 function resolveAppVersion(): string {
   return (
@@ -48,10 +49,7 @@ export function SettingsScreen() {
 
   const isDark = mode === 'dark';
 
-  const separatorColor = useMemo(
-    () => `${colors.textSecondary}26`,
-    [colors.textSecondary]
-  );
+  const borderDropdown = colors.textSecondary + '2a';
 
   const closeLanguagePicker = useCallback(() => {
     setLanguagePickerOpen(false);
@@ -63,7 +61,7 @@ export function SettingsScreen() {
     triggerRef.current?.measureInWindow((x, y, w, h) => {
       const spaceBelow = winH - (y + h);
       const openAbove =
-        spaceBelow < LANGUAGE_PANEL_ESTIMATE && y > LANGUAGE_PANEL_ESTIMATE;
+        spaceBelow < LANGUAGE_MENU_ESTIMATE && y > LANGUAGE_MENU_ESTIMATE;
       setAnchor({ x, y, width: w, height: h, openAbove });
       setLanguagePickerOpen(true);
     });
@@ -124,17 +122,19 @@ export function SettingsScreen() {
             style={({ pressed }) => [
               styles.dropdown,
               {
-                borderColor: colors.textSecondary + '55',
                 backgroundColor: colors.background,
+                borderColor: borderDropdown,
                 ...(languagePickerOpen && anchor
                   ? anchor.openAbove
                     ? {
                         borderTopLeftRadius: 0,
                         borderTopRightRadius: 0,
+                        borderTopWidth: 0,
                       }
                     : {
                         borderBottomLeftRadius: 0,
                         borderBottomRightRadius: 0,
+                        borderBottomWidth: 0,
                       }
                   : null),
               },
@@ -145,8 +145,8 @@ export function SettingsScreen() {
               {localeLabel(locale, t)}
             </Text>
             <MaterialIcons
-              name={languagePickerOpen ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
-              size={24}
+              name={languagePickerOpen ? 'expand-less' : 'expand-more'}
+              size={22}
               color={colors.textSecondary}
             />
           </Pressable>
@@ -163,82 +163,83 @@ export function SettingsScreen() {
       <Modal
         visible={languagePickerOpen}
         transparent
-        animationType="fade"
+        animationType="none"
         onRequestClose={closeLanguagePicker}
       >
         <View style={styles.modalRoot}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('a11y.dismissOverlay')}
-            style={[styles.modalBackdrop, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
+            style={styles.modalBackdrop}
             onPress={closeLanguagePicker}
           />
           {anchor ? (
-            <View
+            <Animated.View
+              key={`${anchor.x}-${anchor.y}-${anchor.openAbove}`}
+              entering={FadeInUp.duration(165)}
               style={[
-                styles.languagePanel,
-                anchor.openAbove ? styles.languagePanelAbove : styles.languagePanelBelow,
+                styles.languageMenu,
+                anchor.openAbove ? styles.languageMenuAbove : styles.languageMenuBelow,
                 {
                   position: 'absolute',
-                  left: anchor.x,
-                  width: anchor.width,
+                  left: Math.round(anchor.x),
+                  width: Math.round(anchor.x + anchor.width) - Math.round(anchor.x),
                   top: anchor.openAbove
-                    ? anchor.y - LANGUAGE_PANEL_ESTIMATE
-                    : anchor.y + anchor.height,
+                    ? Math.round(anchor.y) - LANGUAGE_MENU_ESTIMATE + 1
+                    : Math.round(anchor.y + anchor.height) - 1,
                   backgroundColor: colors.background,
-                  borderColor: colors.textSecondary + '55',
+                  borderColor: borderDropdown,
+                  zIndex: 1,
                 },
               ]}
             >
               {APP_LOCALES.map((code, index) => {
                 const selected = locale === code;
                 return (
-                  <View key={code}>
+                  <Fragment key={code}>
                     {index > 0 ? (
                       <View
                         style={[
                           styles.languageDivider,
-                          { backgroundColor: separatorColor },
+                          { backgroundColor: `${colors.textSecondary}26` },
                         ]}
                       />
                     ) : null}
                     <Pressable
-                      android_ripple={{ color: `${colors.interactive}55` }}
+                      android_ripple={{ color: `${colors.interactive}66` }}
                       onPress={() => {
                         setLocale(code);
                         closeLanguagePicker();
                       }}
                       style={({ pressed }) => [
-                        styles.languageOption,
-                        selected && {
-                          backgroundColor: `${colors.interactive}33`,
-                        },
-                        pressed && { backgroundColor: `${colors.interactive}33` },
+                        styles.languageRow,
+                        selected && { backgroundColor: `${colors.interactive}44` },
+                        pressed && !selected && { backgroundColor: `${colors.interactive}22` },
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.languageOptionText,
-                          { color: colors.text },
-                          selected && styles.languageOptionTextSelected,
-                        ]}
-                      >
-                        {localeLabel(code, t)}
-                      </Text>
-                      <View style={styles.languageOptionTrail}>
-                        {selected ? (
-                          <MaterialIcons
-                            name="check"
-                            size={20}
-                            color={colors.topBar}
-                          />
-                        ) : null}
+                      <View style={styles.languageRowLabelWrap}>
+                        <Text
+                          style={[
+                            styles.languageRowText,
+                            { color: selected ? colors.topBar : colors.text },
+                          ]}
+                        >
+                          {localeLabel(code, t)}
+                        </Text>
+                      </View>
+                      <View style={styles.languageRowTrail}>
+                        <MaterialIcons
+                          name="check"
+                          size={22}
+                          color={colors.topBar}
+                          style={!selected ? styles.languageCheckHidden : undefined}
+                        />
                       </View>
                     </Pressable>
-                  </View>
+                  </Fragment>
                 );
               })}
-            </View>
+            </Animated.View>
           ) : null}
         </View>
       </Modal>
@@ -286,18 +287,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 48,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth,
+    height: 48,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1,
   },
   dropdownPressed: {
-    opacity: 0.92,
+    opacity: 0.94,
   },
   dropdownValue: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   versionBlock: {
     marginTop: 28,
@@ -317,48 +318,60 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
   },
-  languagePanel: {
-    borderWidth: StyleSheet.hairlineWidth,
+  languageMenu: {
+    borderWidth: 1,
     overflow: 'hidden',
   },
-  languagePanelBelow: {
+  languageMenuBelow: {
     borderTopWidth: 0,
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
   },
-  languagePanelAbove: {
+  languageMenuAbove: {
     borderBottomWidth: 0,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
   languageDivider: {
     height: StyleSheet.hairlineWidth,
-    marginHorizontal: 14,
+    alignSelf: 'stretch',
   },
-  languageOption: {
+  languageRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    minHeight: 48,
+    alignItems: 'stretch',
+    height: 48,
+    paddingHorizontal: 16,
+    overflow: 'hidden',
   },
-  languageOptionText: {
-    fontSize: 16,
-    fontWeight: '500',
+  languageRowLabelWrap: {
     flex: 1,
+    justifyContent: 'center',
+    paddingRight: 8,
   },
-  languageOptionTextSelected: {
+  languageRowText: {
+    fontSize: 16,
     fontWeight: '600',
+    letterSpacing: 0.15,
+    ...Platform.select({
+      android: {
+        includeFontPadding: false,
+        textAlignVertical: 'center',
+      },
+      default: {},
+    }),
   },
-  languageOptionTrail: {
+  languageRowTrail: {
     width: 28,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  languageCheckHidden: {
+    opacity: 0,
   },
 });

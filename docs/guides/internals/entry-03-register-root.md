@@ -9,7 +9,7 @@
 
 ## Связи
 
-- Зависит от успешного импорта `App.tsx`.
+- Зависит от успешного импорта `App.tsx` и порядка выше по файлу: [`entry-04-react-native-screens.md`](./entry-04-react-native-screens.md).
 - Expo документация: корректная настройка окружения для dev client и Expo Go.
 
 ## Риски для агентов

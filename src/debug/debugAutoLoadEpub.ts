@@ -21,7 +21,6 @@ const LOG = '[Chitalka][debug-autoload]';
 export type DebugAutoLoadEpubDeps = {
   storage: StorageService;
   locale: AppLocale;
-  openReader: (uri: string, bookId: string) => void;
   onImported: () => void;
 };
 
@@ -39,22 +38,22 @@ export function getDebugEpubImportSpec(): { bookId: string } | null {
 }
 
 /**
- * Копирует EPUB из ассета в кэш, импортирует в библиотеку (или открывает уже импортированный),
- * переходит в читалку. Обход системного проводника — URI всегда `file://` после Asset.
+ * Гарантирует, что демо-EPUB из бандла присутствует в библиотеке (идемпотентно).
+ * Читалку сама не открывает: переход в читалку управляется
+ * автооткрытием последней читаемой книги (см. `library/lastOpenBook.ts`).
  */
 export async function runDebugAutoLoadEpubIfNeeded(deps: DebugAutoLoadEpubDeps): Promise<void> {
   if (!isDebugAutoLoadEpubActive()) {
     return;
   }
-  const { storage, locale, openReader, onImported } = deps;
+  const { storage, locale, onImported } = deps;
   const bookId = DEBUG_DEMO_BOOK_ID;
 
   const existing = await storage.getLibraryBook(bookId);
   if (existing) {
     if (__DEV__) {
-      console.log(LOG, 'уже в библиотеке, открываем', { bookId });
+      console.log(LOG, 'уже в библиотеке', { bookId });
     }
-    openReader(existing.fileUri, bookId);
     return;
   }
 
@@ -68,9 +67,8 @@ export async function runDebugAutoLoadEpubIfNeeded(deps: DebugAutoLoadEpubDeps):
     console.log(LOG, 'импорт из бандла', { bookId, uriPreview: sourceUri.slice(0, 72) });
   }
 
-  const { stableUri } = await importEpubToLibrary(sourceUri, bookId, storage, locale, {
+  await importEpubToLibrary(sourceUri, bookId, storage, locale, {
     suppressSuccessAlert: true,
   });
   onImported();
-  openReader(stableUri, bookId);
 }

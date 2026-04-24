@@ -7,7 +7,7 @@
 
 - Только `Platform.OS === 'android'`.
 - Эффект 1: `NavigationBar.setBackgroundColorAsync`, `setBehaviorAsync('overlay-swipe')` — best-effort, ошибки глотаются.
-- Эффект 2: `setButtonStyleAsync` в зависимости от `mode` темы (`light`/`dark` для кнопок).
+- Эффект 2 (`mode` темы): перед **`setButtonStyleAsync`** планируется вызов через **`requestAnimationFrame`**, в cleanup — **`cancelAnimationFrame`** и флаг `cancelled`, чтобы не обновлять стиль кнопок после размонтирования и реже ловить гонку с первым кадром после смены темы.
 
 ## StatusBar
 

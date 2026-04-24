@@ -23,7 +23,8 @@ export function TrashScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
-  const { libraryEpoch, bumpLibraryEpoch, refreshBookCount } = useLibrary();
+  const { libraryEpoch, bumpLibraryEpoch, refreshBookCount, searchQuery } =
+    useLibrary();
   const storage = useMemo(() => new StorageService(), []);
   const [books, setBooks] = useState<LibraryBookWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
@@ -195,6 +196,18 @@ export function TrashScreen() {
     [colors, purge, restore, t]
   );
 
+  const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
+  const visibleBooks = useMemo(() => {
+    if (!normalizedQuery) {
+      return books;
+    }
+    return books.filter(
+      (b) =>
+        b.title.toLocaleLowerCase().includes(normalizedQuery) ||
+        b.author.toLocaleLowerCase().includes(normalizedQuery)
+    );
+  }, [books, normalizedQuery]);
+
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       {loading ? (
@@ -203,7 +216,7 @@ export function TrashScreen() {
         </View>
       ) : (
         <FlatList
-          data={books}
+          data={visibleBooks}
           keyExtractor={(item) => item.bookId}
           renderItem={renderItem}
           contentContainerStyle={[
@@ -212,7 +225,9 @@ export function TrashScreen() {
           ]}
           ListEmptyComponent={
             <Text style={[styles.empty, { color: colors.textSecondary }]}>
-              {t('screens.cart.empty')}
+              {normalizedQuery
+                ? t('search.noResults')
+                : t('screens.cart.empty')}
             </Text>
           }
         />

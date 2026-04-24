@@ -9,7 +9,7 @@
 
 ## Публичный API
 
-Пропсы: `visible`, `title`, `author`, `coverUri`, `actions`, `onClose`. Экраны передают `actions` через `useMemo` от выбранной книги (`activeBook`).
+Пропсы: `visible`, `title`, `author`, `coverUri`, `actions`, `onClose`. Экраны передают `actions` через `useMemo` от выбранной книги (`activeBook`). Заголовок в шапке: до **трёх** строк (`numberOfLines={3}`), стиль заголовка компактнее основного текста карточки.
 
 ## Связи
 

@@ -5,7 +5,10 @@
 
 ## Экспорты
 
-Цвета и типы из `colors.ts`; `ThemeProvider`, `useTheme` из `ThemeContext.tsx`.
+- Из **`colors.ts`**: `lightThemeColors`, `darkThemeColors`, `getColorsForMode`, типы `ThemeColors`, `ThemeMode`.
+- Из **`ThemeContext.tsx`**: `ThemeProvider`, `useTheme`.
+
+Персистенция режима темы живёт **только** в [`theme-context.md`](./theme-context.md) (AsyncStorage); баррель её не трогает.
 
 ## Связи
 
@@ -13,4 +16,4 @@
 
 ## Риски для агентов
 
-Минимальный файл — при добавлении контекста i18n для темы не смешивать ответственность.
+Минимальный файл — новую логику (storage, побочные эффекты) добавлять в `ThemeContext.tsx` или отдельные модули, а сюда только реэкспорт публичного API.
