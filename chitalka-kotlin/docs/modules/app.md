@@ -77,7 +77,9 @@ flowchart TB
 | `ChitalkaAppController` | Тонкая обёртка: `openReader` → координатор; `bumpLists` — инкремент nonce списков. | `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/ChitalkaAppController.kt` |
 | `ChitalkaNavHost` | Два маршрута: `Main` → контент shell; `Reader/{bookId}/{bookPath}` → `ReaderRouteScreen`. | `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/ChitalkaNavHost.kt` |
 | `AppNavRoutes` | Строки маршрутов и `navigateToReader` (encode URI). Использует `RootStackRoutes` из Kotlin-модуля. | `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/AppNavRoutes.kt` |
-| `ChitalkaMainShell` | `ModalNavigationDrawer`, выбор `DrawerScreen`, поиск, top bar, first-launch диалоги; передаёт контент в `ChitalkaDrawerRouter`. | `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/ChitalkaMainShell.kt` |
+| `ChitalkaMainShell` | `ModalNavigationDrawer` + `Scaffold`, состояние выбранного `DrawerScreen`, `searchQuery`/`isSearchOpen`, welcome-флаги; собирает `ChitalkaDrawerContent` / `ChitalkaTopBar` / `ShellContent` / `WelcomeDialog`. | `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/ChitalkaMainShell.kt` |
+| `ChitalkaTopBar` + `CompactSearchField` | Top bar с логикой `AppTopBarSpec` (search-input vs title, кнопки меню/поиска/очистки) и компактное поле поиска на `onPrimary`-подложке. | `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/ChitalkaTopBar.kt` |
+| `ChitalkaDrawerContent` + `WelcomeDialog` + `DrawerScreen.icon()` | Содержимое drawer (`ModalDrawerSheet` + `NavigationDrawerItem` по `DrawerNavigationSpec.drawerScreenOrder`), first-launch диалог выбора EPUB, маппинг `DrawerScreen → ImageVector`. | `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/ChitalkaShellPieces.kt` |
 | `ChitalkaDrawerRouter` | `when (DrawerScreen)` → конкретные панели. | `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/ChitalkaDrawerRouter.kt` |
 
 ---
@@ -88,7 +90,11 @@ flowchart TB
 |------|------|
 | `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/ReaderRouteScreen.kt` | Маршрут читалки: lifecycle из `ReaderRouteLifecycle`, обновление счётчика книг. |
 | `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/ReaderRouteUiModel.kt` | Параметры маршрута + `persistence`, `librarySession`, `storage`. |
-| `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/reader/ChitalkaReaderScreen.kt` | Основной UI читалки: `ReaderScreenSpec`, `EpubService`, сохранение прогресса, мост `ReaderBridge*`. |
+| `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/reader/ChitalkaReaderScreen.kt` | Точка входа читалки: `remember { ReaderScreenState(...) }`, `LaunchedEffect` для `initialize` + получения `bookRecord`, `DisposableEffect` для `dispose`, диспетчинг `when (state.phase)` по Error/Loading/Ready. |
+| `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/reader/ReaderScreenState.kt` | `ReaderLoadPhase`, `@Stable class ReaderScreenState` с Compose-state-полями (phase, layerA/B, activeLayerId, transition*, busy, bookRecord, transitionProgress Animatable) и методами `activeLayer()` / `dispose()`. Helper `openErrorText(locale, e)` — маппинг `EpubServiceError` / прочих ошибок на строки из `ReaderScreenSpec`. |
+| `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/reader/ReaderScreenStateOps.kt` | Extension-функции над `ReaderScreenState`: `schedulePersist` / `persistNow`, `goToChapter` (переключение слоя A/B с `CompletableDeferred` gate и анимацией `transitionProgress`), `handleBridge` (Ready / Scroll debounce / Page next/prev), `initialize` (EPUB open, восстановление `savedIndex` / `scroll`, сохранение прогресса + `librarySession.refreshBookCount`). |
+| `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/reader/ReaderPageLayer.kt` | Private composable `ReaderPageLayer` с двухслойным кроссфейдом (alpha + translationX + затемнение shade) и хелпер `parseThemeColor(hex)` для `ThemeColors` в `Color`. |
+| `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/reader/ReaderPhaseContent.kt` | Три private composable'а по фазам: `ReaderErrorContent`, `ReaderLoadingContent`, `ReaderReadyContent` (Scaffold с TopAppBar + bottomBar с `pageIndicatorSlash`; рендер обоих `ReaderPageLayer` A и B). |
 | `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/reader/ChitalkaReaderWebView.kt` | Настройка WebView, инъекция скриптов моста, тёмная тема страницы; `WebChromeClient.onConsoleMessage` дублирует `console.*` страницы в `debugLogAppend` (вкладка отладочных логов). |
 | `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/reader/ReactNativeWebPolyfill.kt` | Совместимость с ожиданиями Web/RN-читалки. |
 
@@ -98,10 +104,10 @@ flowchart TB
 
 | Файл | Роль |
 |------|------|
-| `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/library/ChitalkaLibraryListPane.kt` | Списки «сейчас читаю» / «все книги» / избранное: `StorageService`, карточка/действия из спеков Kotlin-модуля. |
+| `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/library/ChitalkaLibraryListPane.kt` | Списки «сейчас читаю» / «все книги» / избранное: `StorageService`, карточка/действия из спеков Kotlin-модуля. Загрузка из БД зависит только от `listRefreshNonce`; поиск фильтрует уже загруженный список через `remember(rawBooks, normalizedSearchQuery)` — ввод в поиске не ходит в SQLite. |
 | `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/library/ChitalkaTrashPane.kt` | Корзина: `TrashScreenSpec`, удалённые книги. |
 | `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/settings/ChitalkaSettingsPane.kt` | Локаль и тема: `I18nUiState`, `persistLocale` / `persistThemeMode`. |
-| `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/debug/ChitalkaDebugLogsPane.kt` | Подписка на `debugLog*` из `library-kotlin`; очистка, копирование в буфер обмена (`ClipboardManager`), экспорт файла; подписи через `DebugLogsScreenSpec`. |
+| `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/debug/ChitalkaDebugLogsPane.kt` | Подписка на `debugLog*` из `library-kotlin`; очистка, копирование в буфер обмена (`ClipboardManager`), экспорт файла; подписи через `DebugLogsScreenSpec`. Перестроение списка по подписке coalesc'ится через `AtomicBoolean` + `delay(DEBUG_LOG_RELOAD_COALESCE_MS)`, чтобы шторм `console.*` из WebView не триггерил `reload()` per-line. |
 
 ---
 

@@ -74,15 +74,18 @@ peers:
 
 | Файл | Назначение |
 |------|------------|
-| `com/chitalka/storage/StorageService.kt` | CRUD библиотеки, списки, прогресс; реализует `LibraryBookLookup`. |
-| `com/chitalka/storage/ChitalkaSqliteOpenHelper.kt` | SQLite схема/миграции. |
+| `com/chitalka/storage/StorageService.kt` | Класс `StorageService` + `withDb` / `withReadDb` (internal) и `mapDbException`; прогресс (`saveProgress` / `getProgress`), upsert книги (`addBook`, `upsertLibraryBook`, `setBookTotalChapters`, `setBookFavorite`), `getLibraryBook` (реализация `LibraryBookLookup`), счётчики `countLibraryBooks` / `countBooksWithProgress`. Чтения через `readableDatabase` (WAL), записи через `writableDatabase`; курсоры маппятся по ординалам. |
+| `com/chitalka/storage/StorageServiceLists.kt` | Extension-функции `StorageService.list*Books` (library / recently read / favorite / trashed), `JOINED_SELECT_COLUMNS` и внутренний `queryJoined`. Вызывающие (`ChitalkaDrawerRouter`, `ChitalkaTrashPane`) импортируют их по имени. |
+| `com/chitalka/storage/StorageServiceTrash.kt` | Extension-функции `moveBookToTrash` / `restoreBookFromTrash` / `purgeBook` / `clearAllData` — работают через `withDb`. |
+| `com/chitalka/storage/StorageServiceMappers.kt` | `Cursor.mapLibraryBookRecordByOrdinal`, `Cursor.mapJoinedRowByOrdinal` (вычисляет `progressFraction`), `assertNonEmptyBookId` / `assertValidProgress`. |
+| `com/chitalka/storage/ChitalkaSqliteOpenHelper.kt` | SQLite схема/миграции. `onConfigure` включает WAL и `PRAGMA synchronous=NORMAL`/`temp_store=MEMORY`. |
 | `com/chitalka/storage/StorageServiceError.kt` | Ошибки слоя хранилища. |
 
 ### EPUB (`com.chitalka.epub`)
 
 | Файл | Назначение |
 |------|------------|
-| `com/chitalka/epub/EpubService.kt` | Высокоуровневые операции с EPUB (таймауты из `library-kotlin`); разбор OPF/spine в `open()` на `Dispatchers.IO`; доменные `EpubServiceError` пробрасываются без общей обёртки. |
+| `com/chitalka/epub/EpubService.kt` | Высокоуровневые операции с EPUB (таймауты из `library-kotlin`); разбор OPF/spine в `open()` на `Dispatchers.IO`; доменные `EpubServiceError` пробрасываются без общей обёртки. `prepareChapterBody` переписывает `<img src>` одним проходом через `StringBuilder`; регэкспы `IMG_TAG_REGEX`/`SRC_ATTR_REGEX`/`HTTP_URL_REGEX` — file-level singletons. |
 | `com/chitalka/epub/EpubIo.kt` | Чтение ZIP/файлов; устойчивое UTF-8 + BOM для `container.xml` и OPF (`readOpfFromUnpackedRootFiles`). |
 | `com/chitalka/epub/EpubMetadata.kt` | Обложка, автор и пр. |
 | `com/chitalka/epub/EpubOpfXml.kt` | Разбор OPF. |
