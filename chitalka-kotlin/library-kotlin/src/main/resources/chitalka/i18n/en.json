@@ -1,0 +1,122 @@
+{
+  "drawer": {
+    "readingNow": "Reading now",
+    "books": "Books & documents",
+    "favorites": "Favorites",
+    "cart": "Trash",
+    "debugLogs": "Debug logs",
+    "settings": "Settings"
+  },
+  "screens": {
+    "readingNow": {
+      "title": "Reading now",
+      "subtitle": "Your current books will appear here."
+    },
+    "favorites": {
+      "title": "Favorites",
+      "subtitle": "Favorite books.",
+      "empty": "No favorites yet. Open a book's menu in the list and add it to favorites."
+    },
+    "cart": {
+      "title": "Trash",
+      "subtitle": "Removed items.",
+      "empty": "Trash is empty."
+    }
+  },
+  "debugLogs": {
+    "title": "Debug logs",
+    "subtitle": "Console output is captured here (including release APK builds). Clear or export to a file to share with the developer.",
+    "clear": "Clear",
+    "copy": "Copy",
+    "export": "Export to file",
+    "empty": "No entries yet. Open a book or wait for app messages.",
+    "exportFailed": "Export failed",
+    "exportNoCache": "Cache directory is unavailable; cannot export.",
+    "exportSaved": "File saved. Sharing is unavailable — path:",
+    "exportDialogTitle": "Share log"
+  },
+  "settings": {
+    "title": "Settings",
+    "themeSection": "Appearance",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "darkTheme": "Dark theme",
+    "languageSection": "Interface language",
+    "languageRu": "Russian",
+    "languageEn": "English",
+    "versionLabel": "App version"
+  },
+  "firstLaunch": {
+    "message": "Open a book in EPUB format from your device.",
+    "cancel": "Cancel",
+    "pickEpub": "Choose .epub"
+  },
+  "books": {
+    "empty": "No books yet. Tap “+” to choose an EPUB file.",
+    "addBookA11y": "Add EPUB book",
+    "readPercent": "{{percent}}% read"
+  },
+  "reader": {
+    "backToLibrary": "← Back to library",
+    "back": "Back",
+    "forward": "Forward",
+    "chapterProgress": "Chapter {{current}} / {{total}}",
+    "loading": "Loading book…",
+    "errorTitle": "Could not open book",
+    "backToBooks": "Back to library",
+    "errors": {
+      "emptySpine": "This book has no chapters.",
+      "openFailed": "Could not open or parse the book.",
+      "unknown": "An unknown error occurred while opening the book.",
+      "timeoutCopy": "Copying the EPUB into app storage took too long. Check the file and free space.",
+      "timeoutUnzip": "Unpacking the EPUB took too long. The file may be very large or corrupted.",
+      "timeoutBookReady": "Parsing the book structure (epubjs) did not finish in time. Try another file or export logs.",
+      "timeoutPrepareChapter": "Preparing the chapter took too long."
+    }
+  },
+  "library": {
+    "importFailed": "Could not add the book."
+  },
+  "picker": {
+    "invalidExtension": "Please choose a file with the .epub extension.",
+    "openFailed": "Could not open the file picker. Please try again."
+  },
+  "book": {
+    "untitled": "Untitled",
+    "unknownAuthor": "Unknown author"
+  },
+  "common": {
+    "mb": "MB",
+    "cancel": "Cancel"
+  },
+  "libraryScreen": {
+    "title": "Library",
+    "subtitle": "Open a book in EPUB format from your device.",
+    "pickEpub": "Choose .epub"
+  },
+  "a11y": {
+    "openMenu": "Open menu",
+    "addBook": "Add book",
+    "search": "Search",
+    "closeSearch": "Close search",
+    "languagePicker": "Choose interface language",
+    "dismissOverlay": "Close"
+  },
+  "search": {
+    "placeholder": "Search by title or author",
+    "noResults": "Nothing found. Try a different query."
+  },
+  "bookActions": {
+    "title": "Book actions",
+    "addToFavorites": "Add to favorites",
+    "removeFromFavorites": "Remove from favorites",
+    "moveToTrash": "Move to trash"
+  },
+  "trash": {
+    "restore": "Restore",
+    "deleteForever": "Delete forever",
+    "confirmDeleteTitle": "Delete book permanently?",
+    "confirmDeleteMessage": "The book file and cover will be removed from the device. This cannot be undone.",
+    "deleteFailed": "Could not delete the book."
+  }
+}

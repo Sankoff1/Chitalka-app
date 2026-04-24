@@ -1,0 +1,27 @@
+Chitalka — нативный Android на Kotlin (заготовка для переноса с Expo/React Native).
+
+Источник шаблона: https://github.com/cortinico/kotlin-android-template
+Снимок (commit): fd541990eb4ab8f7e4e9a65af5672eeeee667032
+
+Дальше: открыть папку в Android Studio, обновить applicationId в buildSrc (Coordinates.kt),
+пакеты и AndroidManifest — см. README.md в этом каталоге.
+
+--- Сборка на этой машине (2026-04) ---
+JDK и Android SDK установлены без прав администратора в каталог:
+  %LOCALAPPDATA%\ChitalkaAndroidDev\
+  - jdk-17\           (Eclipse Temurin 17)
+  - android-sdk\      (platform-tools, platform android-36, build-tools 36.1.0)
+
+В корне проекта создан local.properties с sdk.dir (файл в .gitignore).
+
+Проверка из PowerShell из папки chitalka-kotlin:
+  $env:JAVA_HOME = "$env:LOCALAPPDATA\ChitalkaAndroidDev\jdk-17"
+  $env:ANDROID_HOME = "$env:LOCALAPPDATA\ChitalkaAndroidDev\android-sdk"
+  $env:Path = "$env:JAVA_HOME\bin;$env:Path"
+  .\gradlew.bat :app:assembleDebug
+
+Android Studio: указать тот же SDK в Settings → Android SDK → Android SDK Location,
+JDK — File → Settings → Build → Build Tools → Gradle → Gradle JDK → путь к jdk-17.
+
+Установка через winget (Microsoft.OpenJDK.17 / Google.AndroidStudio) ждёт UAC;
+при отказе можно пользоваться только portable-окружением выше.
