@@ -3,6 +3,10 @@
 # dependencies
 node_modules/
 
+# debug demo EPUB (see src/debug/README.md)
+public/ebook.demo.epub
+assets/debug/ebook.demo.epub
+
 # Expo
 .expo/
 dist/
@@ -41,6 +45,10 @@ Desktop.ini
 .env
 .env*.local
 !.env.example
+
+# Claude Code: per-task work logs (keep folder via .gitkeep)
+.claude/task-logs/*
+!.claude/task-logs/.gitkeep
 
 # typescript
 *.tsbuildinfo

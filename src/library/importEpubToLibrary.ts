@@ -59,7 +59,8 @@ export async function importEpubToLibrary(
   sourceUri: string,
   bookId: string,
   storage: StorageService,
-  locale: AppLocale
+  locale: AppLocale,
+  options?: { suppressSuccessAlert?: boolean }
 ): Promise<{ stableUri: string; bookId: string }> {
   try {
     const base = FileSystem.documentDirectory;
@@ -131,7 +132,9 @@ export async function importEpubToLibrary(
       };
       await storage.addBook(row);
       logImportStage('Книга добавлена в базу', { bookId, title: row.title });
-      Alert.alert('Успех', 'Книга добавлена в базу');
+      if (!options?.suppressSuccessAlert) {
+        Alert.alert('Успех', 'Книга добавлена в базу');
+      }
       return { stableUri, bookId };
     } finally {
       svc.destroy();

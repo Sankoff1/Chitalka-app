@@ -4,12 +4,18 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
 import { Alert } from 'react-native';
 
 import { FirstLaunchModal } from '../components/FirstLaunchModal';
+import {
+  getDebugEpubImportSpec,
+  isDebugAutoLoadEpubActive,
+  runDebugAutoLoadEpubIfNeeded,
+} from '../debug/debugAutoLoadEpub';
 import { StorageService } from '../database/StorageService';
 import { useI18n } from '../i18n';
 import { importEpubToLibrary } from '../library/importEpubToLibrary';
@@ -40,6 +46,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [welcomePickerHint, setWelcomePickerHint] = useState<string | null>(null);
   /** На Android системный document picker часто не показывается поверх RN `Modal` — временно скрываем окно. */
   const [suppressWelcomeForPicker, setSuppressWelcomeForPicker] = useState(false);
+  const debugAutoLoadStarted = useRef(false);
 
   const refreshBookCount = useCallback(async () => {
     try {
@@ -75,6 +82,37 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const openReader = useCallback((uri: string, bookId: string) => {
     navigateToReader(uri, bookId);
   }, []);
+
+  useEffect(() => {
+    if (!storageReady || !isDebugAutoLoadEpubActive() || !getDebugEpubImportSpec()) {
+      return;
+    }
+    if (debugAutoLoadStarted.current) {
+      return;
+    }
+    debugAutoLoadStarted.current = true;
+    setSuppressWelcomeForPicker(true);
+    void (async () => {
+      try {
+        await runDebugAutoLoadEpubIfNeeded({
+          storage,
+          locale,
+          openReader,
+          onImported: () => {
+            setLibraryEpoch((n) => n + 1);
+          },
+        });
+        await refreshBookCount();
+        setWelcomeDismissedSession(true);
+      } catch (e) {
+        if (__DEV__) {
+          console.warn('[Chitalka][debug-autoload]', e);
+        }
+      } finally {
+        setSuppressWelcomeForPicker(false);
+      }
+    })();
+  }, [locale, openReader, refreshBookCount, storage, storageReady]);
 
   const pickEpubFromToolbar = useCallback(async () => {
     try {
