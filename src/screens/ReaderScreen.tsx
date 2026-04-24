@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Pressable,
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import * as FileSystem from 'expo-file-system/legacy';
 
@@ -18,7 +22,7 @@ import {
   EpubServiceError,
   type EpubSpineItem,
 } from '../api/EpubService';
-import { ReaderView } from '../components/ReaderView';
+import { ReaderView, type ReaderPageDirection } from '../components/ReaderView';
 import { StorageService } from '../database/StorageService';
 import { useI18n } from '../i18n';
 
@@ -71,6 +75,10 @@ export function ReaderScreen({
 }: ReaderScreenProps) {
   const { t } = useI18n();
   const storage = useMemo(() => new StorageService(), []);
+  const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
+  const pageAnim = useRef(new Animated.Value(0)).current;
+  const flippingRef = useRef(false);
 
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading');
   const [errorText, setErrorText] = useState<string | null>(null);
@@ -205,10 +213,23 @@ export function ReaderScreen({
     };
   }, [bookPath, bookId, storage, t]);
 
+  const runFlipAnim = useCallback(
+    (toValue: number, duration: number): Promise<void> =>
+      new Promise<void>((resolve) => {
+        Animated.timing(pageAnim, {
+          toValue,
+          duration,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }).start(() => resolve());
+      }),
+    [pageAnim]
+  );
+
   const goChapter = useCallback(
     async (nextIndex: number) => {
       const epub = epubRef.current;
-      if (!epub || !spine.length || phase !== 'ready') {
+      if (!epub || !spine.length || phase !== 'ready' || flippingRef.current) {
         return;
       }
       const clamped = clampChapterIndex(nextIndex, spine.length);
@@ -216,24 +237,34 @@ export function ReaderScreen({
         return;
       }
 
+      flippingRef.current = true;
       await persistProgress(chapterIndex, latestScrollRef.current);
 
-      setPhase('loading');
+      const direction = clamped > chapterIndex ? 1 : -1;
+      const width = screenWidth || 360;
+
       try {
-        const uri = epub.getSpineChapterUri(clamped);
-        const html = await epub.prepareChapter(uri);
+        const htmlPromise = epub.prepareChapter(epub.getSpineChapterUri(clamped));
+        await runFlipAnim(-direction * width, 200);
+        const html = await htmlPromise;
+
         latestScrollRef.current = 0;
         setChapterIndex(clamped);
         setInitialScrollY(0);
         setChapterHtml(html);
-        setPhase('ready');
+        pageAnim.setValue(direction * width);
+
+        await runFlipAnim(0, 220);
         void persistProgress(clamped, 0);
       } catch (e) {
+        pageAnim.setValue(0);
         setPhase('error');
         setErrorText(errorMessage(e, t));
+      } finally {
+        flippingRef.current = false;
       }
     },
-    [chapterIndex, persistProgress, phase, spine.length, t]
+    [chapterIndex, pageAnim, persistProgress, phase, runFlipAnim, screenWidth, spine.length, t]
   );
 
   const onBack = useCallback(() => {
@@ -252,25 +283,12 @@ export function ReaderScreen({
     [chapterIndex, scheduleScrollSave]
   );
 
-  if (phase === 'error' && errorText) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.errorTitle}>{t('reader.errorTitle')}</Text>
-        <Text style={styles.errorBody}>{errorText}</Text>
-        {onBackToLibrary ? (
-          <Pressable
-            onPress={onBackToLibrary}
-            style={({ pressed }) => [styles.errorBack, pressed && styles.errorBackPressed]}
-          >
-            <Text style={styles.errorBackText}>{t('reader.backToBooks')}</Text>
-          </Pressable>
-        ) : null}
-      </View>
-    );
-  }
-
-  const canBack = chapterIndex > 0;
-  const canForward = spine.length > 0 && chapterIndex < spine.length - 1;
+  const onRequestPageChange = useCallback(
+    (direction: ReaderPageDirection) => {
+      void goChapter(chapterIndex + (direction === 'next' ? 1 : -1));
+    },
+    [chapterIndex, goChapter]
+  );
 
   /** Корень распакованной книги всегда под `documentDirectory`; WebView резолвит ресурсы от этого `file://` baseUrl. */
   const webViewBaseUrl = useMemo(() => {
@@ -288,8 +306,28 @@ export function ReaderScreen({
     return u;
   }, [unpackedRootUri]);
 
+  if (phase === 'error' && errorText) {
+    return (
+      <View style={[styles.centered, { paddingTop: insets.top + 24 }]}>
+        <Text style={styles.errorTitle}>{t('reader.errorTitle')}</Text>
+        <Text style={styles.errorBody}>{errorText}</Text>
+        {onBackToLibrary ? (
+          <Pressable
+            onPress={onBackToLibrary}
+            style={({ pressed }) => [styles.errorBack, pressed && styles.errorBackPressed]}
+          >
+            <Text style={styles.errorBackText}>{t('reader.backToBooks')}</Text>
+          </Pressable>
+        ) : null}
+      </View>
+    );
+  }
+
+  const canBack = chapterIndex > 0;
+  const canForward = spine.length > 0 && chapterIndex < spine.length - 1;
+
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { paddingTop: insets.top }]}>
       {onBackToLibrary ? (
         <View style={styles.libraryBar}>
           <Pressable
@@ -339,17 +377,24 @@ export function ReaderScreen({
       </View>
 
       {phase === 'ready' && unpackedRootUri ? (
-        <ReaderView
-          chapterKey={`${bookId}-${chapterIndex}`}
-          html={
-            chapterHtml.trim().length > 0
-              ? chapterHtml
-              : '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body></body></html>'
-          }
-          baseUrl={webViewBaseUrl}
-          initialScrollY={initialScrollY}
-          onScrollOffsetChange={onScrollOffsetChange}
-        />
+        <View style={styles.pageHost}>
+          <Animated.View
+            style={[styles.pageLayer, { transform: [{ translateX: pageAnim }] }]}
+          >
+            <ReaderView
+              chapterKey={`${bookId}-${chapterIndex}`}
+              html={
+                chapterHtml.trim().length > 0
+                  ? chapterHtml
+                  : '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body></body></html>'
+              }
+              baseUrl={webViewBaseUrl}
+              initialScrollY={initialScrollY}
+              onScrollOffsetChange={onScrollOffsetChange}
+              onRequestPageChange={onRequestPageChange}
+            />
+          </Animated.View>
+        </View>
       ) : (
         <View style={styles.loaderWrap}>
           <ActivityIndicator size="large" />
@@ -422,6 +467,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 14,
     color: '#555',
+  },
+  pageHost: {
+    flex: 1,
+    overflow: 'hidden',
+    backgroundColor: '#ece9e1',
+  },
+  pageLayer: {
+    flex: 1,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 12,
   },
   loaderWrap: {
     flex: 1,

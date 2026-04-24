@@ -143,7 +143,8 @@ function injectReaderViewportAndReflowCss(html: string): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style type="text/css" id="chitalka-reader-reflow">
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
-body{margin:0!important;box-sizing:border-box;width:100%!important;max-width:100vw!important;overflow-x:hidden!important;word-wrap:break-word;overflow-wrap:break-word;}
+body{margin:0!important;padding:16px 20px env(safe-area-inset-bottom, 16px)!important;box-sizing:border-box;width:100%!important;max-width:100vw!important;overflow-x:hidden!important;word-wrap:break-word;overflow-wrap:break-word;line-height:1.55;}
+p{margin:0 0 1em 0;}
 img,svg,video,object,embed,iframe{max-width:100%!important;height:auto!important;}
 table{max-width:100%!important;}
 pre,code{white-space:pre-wrap;word-wrap:break-word;max-width:100%;}
