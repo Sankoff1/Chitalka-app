@@ -21,18 +21,9 @@ import com.chitalka.screens.reader.outgoingShadeOpacity
 import com.chitalka.theme.ThemeColors
 import com.chitalka.theme.ThemeMode
 import com.chitalka.ui.readerview.ReaderBridgeInboundMessage
+import com.ncorti.kotlin.template.app.ui.theme.parseHexColor
 
-internal fun parseThemeColor(hex: String): Color {
-    val s = hex.trim().removePrefix("#")
-    val v = s.toLong(16)
-    val argb: Int =
-        when (s.length) {
-            6 -> (0xFF shl 24) or (v.toInt() and 0xFFFFFF)
-            8 -> (v and 0xFFFFFFFFL).toInt()
-            else -> 0xFF000000.toInt()
-        }
-    return Color(argb)
-}
+internal fun parseThemeColor(hex: String): Color = parseHexColor(hex)
 
 @Composable
 internal fun ReaderPageLayer(

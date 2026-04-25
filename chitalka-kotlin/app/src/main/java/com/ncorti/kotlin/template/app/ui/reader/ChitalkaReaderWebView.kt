@@ -74,14 +74,14 @@ fun ChitalkaReaderWebView(
                     settings.domStorageEnabled = true
                     @Suppress("DEPRECATION")
                     settings.allowFileAccess = true
-                addJavascriptInterface(
-                    ReactNativeWebPolyfill { json ->
-                        parseReaderBridgeInboundMessage(json)?.let { msg ->
-                            bridgeHandler.value.invoke(msg)
-                        }
-                    },
-                    "ReactNativeWebView",
-                )
+                    addJavascriptInterface(
+                        ReactNativeWebPolyfill { json ->
+                            parseReaderBridgeInboundMessage(json)?.let { msg ->
+                                bridgeHandler.value.invoke(msg)
+                            }
+                        },
+                        "ReactNativeWebView",
+                    )
                     webChromeClient =
                         object : WebChromeClient() {
                             override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {

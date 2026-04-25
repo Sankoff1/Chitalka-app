@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.chitalka.core.types.LibraryBookWithProgress
+import com.chitalka.i18n.AppLocale
 import com.chitalka.i18n.I18nUiState
 import com.chitalka.library.LibrarySessionState
 import com.chitalka.screens.trash.TrashScreenSpec
@@ -171,7 +172,7 @@ private fun EmptyTrashState(message: String) {
 @Composable
 private fun TrashRowCard(
     book: LibraryBookWithProgress,
-    locale: com.chitalka.i18n.AppLocale,
+    locale: AppLocale,
     onRestore: () -> Unit,
     onDelete: () -> Unit,
 ) {

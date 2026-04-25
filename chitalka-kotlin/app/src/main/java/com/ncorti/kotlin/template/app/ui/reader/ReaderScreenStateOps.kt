@@ -15,6 +15,7 @@ import android.content.Context
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import com.chitalka.core.types.ReadingProgress
+import com.chitalka.debug.ChitalkaMirrorLog
 import com.chitalka.epub.EpubService
 import com.chitalka.epub.EpubServiceError
 import com.chitalka.library.refreshBookCount
@@ -57,9 +58,12 @@ private suspend fun ReaderScreenState.saveProgressSafely(index: Int, scrollY: Do
                 lastReadTimestamp = System.currentTimeMillis(),
             ),
         )
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        ChitalkaMirrorLog.w(READER_LOG_TAG, "saveProgress failed bookId=$bookId chapter=$index", e)
     }
 }
+
+private const val READER_LOG_TAG = "Reader"
 
 internal fun ReaderScreenState.launchGoToChapter(targetIndex: Int) {
     scope.launch { goToChapter(targetIndex) }
@@ -209,7 +213,8 @@ internal suspend fun ReaderScreenState.initialize(context: Context, nativePath: 
         unpackedRoot = structure.unpackedRootUri
         try {
             storage.setBookTotalChapters(bookId, structure.spine.size)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            ChitalkaMirrorLog.w(READER_LOG_TAG, "setBookTotalChapters failed bookId=$bookId", e)
         }
         val savedIndex =
             if (progress != null) {
@@ -242,7 +247,8 @@ internal suspend fun ReaderScreenState.initialize(context: Context, nativePath: 
                 ),
             )
             librarySession.refreshBookCount(storage)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            ChitalkaMirrorLog.w(READER_LOG_TAG, "initial saveProgress / refresh failed bookId=$bookId", e)
         }
     } catch (e: Exception) {
         service.destroy()

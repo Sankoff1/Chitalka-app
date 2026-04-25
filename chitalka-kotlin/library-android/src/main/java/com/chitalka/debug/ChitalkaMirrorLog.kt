@@ -7,7 +7,7 @@ import android.util.Log
  * во вкладке «Отладочные логи». Сам [installConsoleCapture] перехватывает только stdout/stderr;
  * на Android [Log] пишет в logcat и мимо System.out.
  */
-internal object ChitalkaMirrorLog {
+object ChitalkaMirrorLog {
     private fun mirror(level: DebugLogLevel, tag: String, message: String) {
         debugLogAppend(level, "$tag: $message")
     }

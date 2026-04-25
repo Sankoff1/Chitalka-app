@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
+import com.chitalka.debug.ChitalkaMirrorLog
 import com.chitalka.i18n.AppLocale
 import com.chitalka.i18n.loadPersistedLocale
 import com.chitalka.library.LibrarySessionState
@@ -88,7 +89,8 @@ fun ChitalkaApp(activity: ComponentActivity) {
                 val pick =
                     try {
                         EpubPickerAndroid.mapOpenDocumentUri(uri, activity.contentResolver)
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
+                        ChitalkaMirrorLog.w("ChitalkaApp", "mapOpenDocumentUri failed uri=$uri", e)
                         EpubPickerAndroid.pickFailedResult()
                     }
                 librarySession.setSuppressWelcomeForPicker(false)
@@ -104,7 +106,8 @@ fun ChitalkaApp(activity: ComponentActivity) {
                             )
                             librarySession.setWelcomePickerHint(null)
                             listNonce.intValue++
-                        } catch (_: Exception) {
+                        } catch (e: Exception) {
+                            ChitalkaMirrorLog.e("ChitalkaApp", "importEpubToLibrary failed bookId=${pick.bookId}", e)
                             librarySession.setWelcomePickerHint("library.importFailed")
                         }
                     }

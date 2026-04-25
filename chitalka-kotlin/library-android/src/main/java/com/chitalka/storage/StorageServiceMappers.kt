@@ -61,7 +61,4 @@ internal fun assertValidProgress(progress: ReadingProgress) {
     if (!progress.scrollOffset.isFinite()) {
         throw StorageServiceError("scrollOffset должен быть конечным числом.")
     }
-    if (progress.lastReadTimestamp < Long.MIN_VALUE / 2 || progress.lastReadTimestamp > Long.MAX_VALUE / 2) {
-        throw StorageServiceError("lastReadTimestamp должен быть конечным числом.")
-    }
 }

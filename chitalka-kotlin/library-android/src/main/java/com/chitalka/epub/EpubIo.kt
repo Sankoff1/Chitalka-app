@@ -112,11 +112,9 @@ internal fun readOpfFromUnpackedRootFiles(rootUriString: String): OpfReadResult 
     }
     val containerXml = containerFile.readXmlTextLenient().trimStart('\uFEFF')
     val fp =
-        Regex("""\bfull-path\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE).find(containerXml)
+        Regex("""\bfull-path\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+            .find(containerXml)
             ?.groupValues?.get(1)?.trim()
-            ?: Regex("""\bfull-path\s*=\s*"([^"]+)"""").find(containerXml)?.groupValues?.get(1)?.trim()
-            ?: Regex("""\bfull-path\s*=\s*'([^']+)'""", RegexOption.IGNORE_CASE).find(containerXml)
-                ?.groupValues?.get(1)?.trim()
             ?: throw EpubServiceError("В container.xml не найден full-path к OPF.")
     val opfUri = joinUnderUnpackedRoot(root, fp)
     val opfFile = File(fileUriToNativePath(opfUri))

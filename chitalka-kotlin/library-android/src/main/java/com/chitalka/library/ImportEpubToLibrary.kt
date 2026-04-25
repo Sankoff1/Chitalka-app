@@ -30,8 +30,8 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 
 private const val LOG_TAG = "[Chitalka][Импорт]"
-private const val EPUB_SUBDIR = "library_epubs/"
-private const val COVERS_SUBDIR = "library_covers/"
+private const val EPUB_SUBDIR = "library_epubs"
+private const val COVERS_SUBDIR = "library_covers"
 
 data class ImportEpubOptions(
     /** Не вызывать опциональные колбэки успеха / дубликата (аналог `suppressSuccessAlert` в RN). */
@@ -120,8 +120,8 @@ suspend fun importEpubToLibrary(
 
         val stem = sanitizeFileStem(bookId)
         val fileBase = "${stem}__${shortFileSuffix(bookId)}"
-        val epubDir = File(baseFile, EPUB_SUBDIR.trimEnd('/'))
-        val coversDir = File(baseFile, COVERS_SUBDIR.trimEnd('/'))
+        val epubDir = File(baseFile, EPUB_SUBDIR)
+        val coversDir = File(baseFile, COVERS_SUBDIR)
         epubDir.mkdirs()
         coversDir.mkdirs()
 

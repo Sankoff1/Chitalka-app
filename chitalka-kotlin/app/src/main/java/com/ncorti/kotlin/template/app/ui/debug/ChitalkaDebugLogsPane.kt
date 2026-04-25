@@ -21,8 +21,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -49,6 +49,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import com.chitalka.debug.ChitalkaMirrorLog
 import com.chitalka.debug.DebugLogEntry
 import com.chitalka.debug.debugLogClear
 import com.chitalka.debug.debugLogFormatExport
@@ -119,7 +120,7 @@ fun ChitalkaDebugLogsPane(locale: AppLocale) {
                 },
             )
             DebugActionButton(
-                icon = Icons.Filled.Add,
+                icon = Icons.Filled.Edit,
                 label = DebugLogsScreenSpec.copyLabel(locale),
                 enabled = !exporting && entries.isNotEmpty(),
                 onClick = {
@@ -137,7 +138,8 @@ fun ChitalkaDebugLogsPane(locale: AppLocale) {
                     scope.launch {
                         try {
                             exportLogsToShare(context, locale)
-                        } catch (_: Exception) {
+                        } catch (e: Exception) {
+                            ChitalkaMirrorLog.e("DebugLogs", "export failed", e)
                         } finally {
                             exporting = false
                         }

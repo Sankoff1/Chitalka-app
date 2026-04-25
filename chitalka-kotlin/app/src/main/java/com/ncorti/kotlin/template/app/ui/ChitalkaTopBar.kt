@@ -164,7 +164,7 @@ private fun CompactSearchField(
             ) {
                 Icon(
                     Icons.Filled.Close,
-                    contentDescription = placeholder,
+                    contentDescription = null,
                     tint = onPrimary,
                     modifier = Modifier.size(16.dp),
                 )

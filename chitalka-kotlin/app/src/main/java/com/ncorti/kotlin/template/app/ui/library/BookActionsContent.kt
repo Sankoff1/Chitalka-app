@@ -2,8 +2,7 @@
 
 package com.ncorti.kotlin.template.app.ui.library
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -99,7 +98,6 @@ internal fun BookActionsContent(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ActionRow(
     icon: ImageVector,
@@ -111,7 +109,7 @@ private fun ActionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .combinedClickable(onClick = onClick, onLongClick = onClick)
+            .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
