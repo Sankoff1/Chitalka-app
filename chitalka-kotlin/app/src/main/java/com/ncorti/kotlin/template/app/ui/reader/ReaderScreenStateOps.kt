@@ -19,6 +19,13 @@ import com.chitalka.epub.EpubService
 import com.chitalka.epub.EpubServiceError
 import com.chitalka.library.refreshBookCount
 import com.chitalka.screens.reader.ReaderScreenSpec
+import com.chitalka.screens.reader.canAttemptChapterChange
+import com.chitalka.screens.reader.clampChapterIndex
+import com.chitalka.screens.reader.inactiveLayerId
+import com.chitalka.screens.reader.layerToken
+import com.chitalka.screens.reader.normalizeSavedScrollOffset
+import com.chitalka.screens.reader.shouldSkipChapterNavigation
+import com.chitalka.screens.reader.transitionDirectionSign
 import com.chitalka.ui.readerview.READER_BRIDGE_SCROLL_DEBOUNCE_MS
 import com.chitalka.ui.readerview.ReaderBridgeInboundMessage
 import com.chitalka.ui.readerview.ReaderPageDirection

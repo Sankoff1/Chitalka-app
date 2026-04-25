@@ -11,6 +11,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.zIndex
 import com.chitalka.screens.reader.ReaderScreenSpec
+import com.chitalka.screens.reader.incomingPageOpacity
+import com.chitalka.screens.reader.incomingPageTranslateXPx
+import com.chitalka.screens.reader.incomingShadeOpacity
+import com.chitalka.screens.reader.layerHtmlForWebView
+import com.chitalka.screens.reader.outgoingPageOpacity
+import com.chitalka.screens.reader.outgoingPageTranslateXPx
+import com.chitalka.screens.reader.outgoingShadeOpacity
 import com.chitalka.theme.ThemeColors
 import com.chitalka.theme.ThemeMode
 import com.chitalka.ui.readerview.ReaderBridgeInboundMessage

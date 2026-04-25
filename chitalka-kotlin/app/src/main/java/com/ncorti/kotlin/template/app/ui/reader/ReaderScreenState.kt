@@ -15,6 +15,7 @@ import com.chitalka.epub.EpubServiceError
 import com.chitalka.i18n.AppLocale
 import com.chitalka.library.LibrarySessionState
 import com.chitalka.screens.reader.ReaderScreenSpec
+import com.chitalka.screens.reader.readerOpenErrorMessage
 import com.chitalka.storage.StorageService
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CompletableDeferred

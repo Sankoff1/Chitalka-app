@@ -125,7 +125,10 @@ flowchart TB
 | `screens/trash/TrashScreenSpec.kt` | Корзина. |
 | `screens/settings/SettingsScreenSpec.kt` | Настройки. |
 | `screens/debuglogs/DebugLogsScreenSpec.kt` | Отладочные логи: заголовки, подписи кнопок (очистить / **скопировать** / экспорт), экспорт. |
-| `screens/reader/ReaderScreenSpec.kt` | Читалка. |
+| `screens/reader/ReaderScreenSpec.kt` | Читалка: `object ReaderScreenSpec` с типами (`ReaderLayerId`, `ReaderLayerState`, `ReaderOpenErrorKind`), вложенными константами (`I18nKeys`, `Timing`, `Transition`, `Layout`, `Colors`, `EMPTY_READER_HTML`) и i18n-аксессорами (`backToLibrary` / `loading` / `errorTitle` / `backToBooks` / `chapterProgressLabel` / `pageIndicatorSlash`). |
+| `screens/reader/ReaderScreenSpecErrors.kt` | Extension `ReaderScreenSpec.readerOpenErrorMessage(locale, ReaderOpenErrorKind)` + private `epubOpenErrorMessage` (маппинг `EPUB_*` кодов на `ERR_*` строки каталога). |
+| `screens/reader/ReaderScreenSpecChapter.kt` | Extensions для логики глав: `clampChapterIndex`, `inactiveLayerId`, `normalizeSavedScrollOffset`, `layerHtmlForWebView`, `webViewBaseUrl`, `shouldWarnUnpackedOutsideDocuments`, `layerToken`, `transitionDirectionSign`, `targetChapterForPageTurn`, `canAttemptChapterChange`, `shouldSkipChapterNavigation`, `transitionDistancePx`. |
+| `screens/reader/ReaderScreenSpecTransitions.kt` | Extensions для математики анимации: `outgoingPageTranslateXPx`, `incomingPageTranslateXPx`, `piecewiseLinear`, `outgoingPageOpacity`, `incomingPageOpacity`, `outgoingShadeOpacity`, `incomingShadeOpacity`. |
 | `screens/common/BookListScreenLayout.kt` | Общая раскладка списка. |
 | `screens/common/BookListSearchFilter.kt` | Нормализация поискового запроса. |
 

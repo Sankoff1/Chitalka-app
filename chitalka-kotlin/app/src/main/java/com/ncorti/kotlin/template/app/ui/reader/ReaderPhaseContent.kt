@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chitalka.i18n.AppLocale
 import com.chitalka.screens.reader.ReaderScreenSpec
+import com.chitalka.screens.reader.webViewBaseUrl
 import com.chitalka.theme.ThemeColors
 import com.chitalka.theme.ThemeMode
 

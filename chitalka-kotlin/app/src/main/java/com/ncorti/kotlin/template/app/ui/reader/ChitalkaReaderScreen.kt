@@ -18,6 +18,7 @@ import com.chitalka.epub.fileUriToNativePath
 import com.chitalka.i18n.AppLocale
 import com.chitalka.library.LibrarySessionState
 import com.chitalka.screens.reader.ReaderScreenSpec
+import com.chitalka.screens.reader.transitionDistancePx
 import com.chitalka.storage.StorageService
 import com.chitalka.theme.ThemeColors
 import com.chitalka.theme.ThemeMode
