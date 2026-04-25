@@ -5,7 +5,8 @@ import android.os.Looper
 import android.webkit.JavascriptInterface
 
 /**
- * Подмена `window.ReactNativeWebView.postMessage` из RN WebView для нативного [android.webkit.WebView].
+ * Реализация `window.ReactNativeWebView.postMessage` для нативного [android.webkit.WebView]:
+ * страница читалки (наследие RN) шлёт сообщения по этому имени, мы пробрасываем их в Kotlin-callback.
  */
 class ReactNativeWebPolyfill(
     private val onMessage: (String) -> Unit,

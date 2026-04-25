@@ -4,9 +4,7 @@ import com.chitalka.i18n.AppLocale
 import com.chitalka.i18n.I18nCatalog
 import kotlin.math.roundToInt
 
-/**
- * Карточка книги без Image/Pressable (`BookCard.tsx`).
- */
+/** Контракт карточки книги: вёрстка, прогресс чтения, i18n-ключи. */
 object BookCardSpec {
 
     private const val PERCENT_SCALE: Double = 100.0
@@ -60,26 +58,13 @@ object BookCardSpec {
         const val LONG_PRESS_DELAY_MS: Long = 350L
     }
 
-    /** К `colors.textSecondary` для рамки обложки (`+ '33'` в RN). */
-    const val COVER_BORDER_ALPHA_SUFFIX: String = "33"
-
-    /** К `colors.textSecondary` для разделителя в fallback-обложке (`+ '55'`). */
-    const val COVER_RULE_ALPHA_SUFFIX: String = "55"
-
     object Colors {
         const val FAVORITE_GLYPH_HEX: String = "#FF5A7A"
         const val MENU_ICON_ON_SCRIM_HEX: String = "#FFFFFF"
         const val OVERLAY_SCRIM_ALPHA: Float = 0.55f
     }
 
-    object MaterialIcons {
-        const val MENU_INFO_OUTLINE = "info-outline"
-        const val MENU_ICON_SIZE_DP: Int = 20
-    }
-
-    /**
-     * Ограничение доли прогресса 0..1 (`clampFraction` в RN).
-     */
+    /** Ограничение доли прогресса диапазоном 0..1; нечисловые значения → 0. */
     fun clampProgressFraction(progress: Double): Double {
         if (!progress.isFinite()) {
             return 0.0
@@ -87,7 +72,7 @@ object BookCardSpec {
         return progress.coerceIn(0.0, 1.0)
     }
 
-    /** Показывать ли блок прогресса: в RN `typeof progress === 'number'` (в т.ч. NaN даёт 0 %). */
+    /** Показывать ли блок прогресса (любое не-null значение, включая NaN, считается «есть»). */
     fun hasProgressValue(progress: Double?): Boolean = progress != null
 
     fun progressPercentRounded(progress: Double): Int =
@@ -103,7 +88,7 @@ object BookCardSpec {
             mapOf("percent" to percent),
         )
 
-    /** Дополнительный `paddingEnd` текстового блока при кнопке меню (`COVER_MENU_BTN + 10`). */
+    /** Дополнительный paddingEnd текстового блока, чтобы не наезжать на кнопку меню. */
     fun textBlockEndPaddingWithMenuDp(): Int =
         Layout.MENU_BUTTON_SIZE_DP + Layout.TEXT_BLOCK_EXTRA_END_PADDING_WITH_MENU_DP
 }

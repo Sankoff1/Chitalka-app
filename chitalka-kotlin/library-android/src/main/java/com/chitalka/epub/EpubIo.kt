@@ -12,7 +12,7 @@ import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
 import java.util.zip.ZipInputStream
 
-/** Копия входного URI в `cacheDir/temp.epub` (как `copyFileToInternalStorage` в RN). */
+/** Копирует входной URI в `cacheDir/temp.epub` для последующей распаковки. */
 suspend fun copySourceToTempEpub(context: Context, sourceUriString: String): String =
     withContext(Dispatchers.IO) {
         val dest = File(context.cacheDir, "temp.epub")

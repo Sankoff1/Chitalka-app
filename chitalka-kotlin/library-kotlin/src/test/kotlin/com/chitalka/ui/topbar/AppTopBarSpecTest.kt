@@ -9,7 +9,7 @@ import org.junit.Test
 class AppTopBarSpecTest {
 
     @Test
-    fun nonSearchableRoutes_matchReactNative() {
+    fun nonSearchableRoutes_excludeSettingsAndDebug() {
         assertEquals(setOf("Settings", "DebugLogs"), AppTopBarSpec.nonSearchableRouteNames)
     }
 

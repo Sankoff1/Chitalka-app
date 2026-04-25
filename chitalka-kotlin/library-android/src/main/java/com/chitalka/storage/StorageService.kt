@@ -15,9 +15,7 @@ import kotlinx.coroutines.withContext
 internal const val LOG_PREFIX = "[StorageService]"
 internal const val STORAGE_LOG_TAG = "ChitalkaStorage"
 
-/**
- * SQLite-хранилище прогресса чтения и библиотеки (аналог RN StorageService).
- */
+/** SQLite-хранилище прогресса чтения и записей библиотеки. */
 @Suppress("TooManyFunctions")
 class StorageService internal constructor(
     private val helper: ChitalkaSqliteOpenHelper,
@@ -47,19 +45,8 @@ class StorageService internal constructor(
         val msg = e.message.orEmpty()
         val openHints = listOf("unable to open", "Could not open", "disk I/O", "SQLITE_CANTOPEN")
         val isLikelyOpen = openHints.any { msg.contains(it, ignoreCase = true) }
-        return if (isLikelyOpen) {
-            StorageServiceError(
-                "Не удалось открыть локальную базу данных читалки. " +
-                    "Проверьте свободное место и перезапустите приложение.",
-                e,
-            )
-        } else {
-            StorageServiceError(
-                "Ошибка хранилища: ${e.message}. " +
-                    "Повторите попытку или очистите данные в разделе «Эксплуатация».",
-                e,
-            )
-        }
+        val code = if (isLikelyOpen) STORAGE_ERR_OPEN_FAILED else STORAGE_ERR_GENERIC
+        return StorageServiceError(code, e)
     }
 
     suspend fun saveProgress(progress: ReadingProgress) {

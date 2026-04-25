@@ -9,7 +9,7 @@ import org.junit.Test
 class BookCardSpecTest {
 
     @Test
-    fun clampProgressFraction_matchesReactNative() {
+    fun clampProgressFraction_clampsAndHandlesNan() {
         assertEquals(0.0, BookCardSpec.clampProgressFraction(Double.NaN), 0.0)
         assertEquals(0.0, BookCardSpec.clampProgressFraction(Double.POSITIVE_INFINITY), 0.0)
         assertEquals(0.0, BookCardSpec.clampProgressFraction(-0.5), 0.0)

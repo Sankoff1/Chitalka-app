@@ -6,30 +6,13 @@ import com.chitalka.i18n.AppLocale
 import com.chitalka.i18n.I18nCatalog
 import kotlin.math.round
 
-/**
- * Экран настроек без React / Reanimated / `expo-constants` (`SettingsScreen.tsx`).
- */
+/** Контракт экрана настроек. */
 object SettingsScreenSpec {
 
-    /** Две строки по 48px + разделитель (`LANGUAGE_MENU_ESTIMATE` в RN). */
+    /** Высота меню выбора языка (две строки по 48 + разделитель). */
     const val LANGUAGE_MENU_ESTIMATE_PX: Int = 97
 
-    /** Длительность `FadeInUp` для меню языка (мс). */
-    const val LANGUAGE_MENU_ENTERING_DURATION_MS: Int = 165
-
     const val APP_VERSION_FALLBACK: String = "—"
-
-    /** К `colors.textSecondary` для рамки выпадающего списка (`+ '2a'`). */
-    const val DROPDOWN_BORDER_ALPHA_SUFFIX: String = "2a"
-
-    /** К `colors.textSecondary` для рамки карточки (`+ '44'`). */
-    const val CARD_BORDER_ALPHA_SUFFIX: String = "44"
-
-    /** Верхняя граница блока версии (`+ '33'`). */
-    const val VERSION_BLOCK_BORDER_ALPHA_SUFFIX: String = "33"
-
-    /** Android: светлый thumb у `Switch` в светлой теме. */
-    const val SWITCH_THUMB_LIGHT_HEX: String = "#f4f3f4"
 
     object I18nKeys {
         const val THEME_SECTION = "settings.themeSection"
@@ -82,15 +65,9 @@ object SettingsScreenSpec {
         const val LANGUAGE_CHECK_ICON_SIZE_DP: Int = 22
     }
 
-    object MaterialIcons {
-        const val EXPAND_MORE = "expand-more"
-        const val EXPAND_LESS = "expand-less"
-        const val CHECK = "check"
-    }
-
     /**
-     * Как `Constants.expoConfig?.version ?? Constants.nativeApplicationVersion ?? '—'`.
-     * На Android передайте `BuildConfig.VERSION_NAME` / значение из манифеста во второй аргумент.
+     * Версия приложения для отображения. На Android передайте `BuildConfig.VERSION_NAME`
+     * вторым аргументом; первый зарезервирован под альтернативный источник (например, конфиг).
      */
     fun resolveAppVersion(
         expoConfigVersion: String?,
@@ -100,7 +77,7 @@ object SettingsScreenSpec {
             ?: nativeApplicationVersion?.takeIf { it.isNotBlank() }
             ?: APP_VERSION_FALLBACK
 
-    /** Подпись пункта языка в выпадающем списке (`localeLabel` в RN). */
+    /** Подпись пункта языка в выпадающем списке. */
     fun languageOptionLabel(
         forLocale: AppLocale,
         uiLocale: AppLocale,
@@ -110,9 +87,7 @@ object SettingsScreenSpec {
             AppLocale.EN -> I18nCatalog.tSync(uiLocale, I18nKeys.LANGUAGE_EN)
         }
 
-    /**
-     * Показывать меню над якорём, если снизу мало места (`openLanguagePicker` в RN).
-     */
+    /** Показывать меню над якорём, если снизу не хватает места. */
     fun shouldOpenLanguageMenuAbove(
         windowHeightPx: Float,
         anchorY: Float,
@@ -122,7 +97,7 @@ object SettingsScreenSpec {
         return spaceBelow < LANGUAGE_MENU_ESTIMATE_PX && anchorY > LANGUAGE_MENU_ESTIMATE_PX
     }
 
-    /** Вертикальная позиция меню (`top` в стилях RN). */
+    /** Вертикальная позиция (top, в px) меню языка относительно якоря. */
     fun languageMenuTopPx(
         anchorY: Float,
         anchorHeight: Float,

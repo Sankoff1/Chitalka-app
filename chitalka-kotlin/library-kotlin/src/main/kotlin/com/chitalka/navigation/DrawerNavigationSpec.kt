@@ -3,18 +3,16 @@ package com.chitalka.navigation
 import kotlin.math.min
 
 /**
- * Параметры бокового меню из `AppDrawer.tsx` (без привязки к Compose / `AppTopBar`).
+ * Параметры бокового меню без привязки к Compose.
  */
 object DrawerNavigationSpec {
-    /** Целевая ширина drawer в dp (`DRAWER_TARGET_WIDTH = 288`). */
+    /** Целевая ширина drawer в dp. */
     const val TARGET_WIDTH_DP: Int = 288
 
-    /**
-     * Запас по краю окна перед ограничением ширины (`Math.min(288, windowWidth - 24)` в RN, логические px = dp).
-     */
+    /** Запас по краю окна перед ограничением ширины. */
     const val WIDTH_WINDOW_EDGE_RESERVE_DP: Int = 24
 
-    /** Порядок пунктов в навигаторе — как след экранов в `Drawer.Navigator`. */
+    /** Порядок пунктов в меню. */
     val drawerScreenOrder: List<DrawerScreen> =
         listOf(
             DrawerScreen.ReadingNow,
@@ -34,10 +32,7 @@ object DrawerNavigationSpec {
     }
 }
 
-/**
- * Ключи для [com.chitalka.i18n.I18nCatalog.tSync] — в RN `t('drawer.readingNow')` и т.д.
- * Заголовок экрана и подпись в меню совпадают (`title` и `drawerLabel`).
- */
+/** Ключ строки в [com.chitalka.i18n.I18nCatalog] для подписи пункта меню (он же заголовок экрана). */
 val DrawerScreen.drawerLabelI18nPath: String
     get() =
         when (this) {

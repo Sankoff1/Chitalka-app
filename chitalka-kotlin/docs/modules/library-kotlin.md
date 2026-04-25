@@ -94,7 +94,7 @@ flowchart TB
 | Файл | Назначение |
 |------|------------|
 | `kotlin/com/chitalka/core/types/LibraryBookRecord.kt` | Запись книги в библиотеке. |
-| `kotlin/com/chitalka/core/types/LibraryBookWithProgress.kt` | Книга + прогресс чтения. |
+| `kotlin/com/chitalka/core/types/LibraryBookWithProgress.kt` | Композиция: `record: LibraryBookRecord` + `lastChapterIndex: Int?` + `progressFraction: Double?`. Поля книги читаются через `book.record.title` и т.п. — без дублирования. |
 | `kotlin/com/chitalka/core/types/ReadingProgress.kt` | Модель прогресса. |
 
 ### `com.chitalka.navigation`
@@ -119,9 +119,7 @@ flowchart TB
 
 | Пакет / файл | Экран |
 |--------------|--------|
-| `screens/readingnow/ReadingNowScreenSpec.kt` | Сейчас читаю. |
-| `screens/books/BooksAndDocsScreenSpec.kt` | Книги и документы. |
-| `screens/favorites/FavoritesScreenSpec.kt` | Избранное. |
+| `screens/common/BookListScreenSpec.kt` | Единый контракт «Сейчас читаю» / «Книги и документы» / «Избранное» — `data class BookListScreenSpec` с фабриками `ReadingNow`, `BooksAndDocs`, `Favorites` (различия только в i18n-ключе пустого состояния и наличии FAB). |
 | `screens/trash/TrashScreenSpec.kt` | Корзина. |
 | `screens/settings/SettingsScreenSpec.kt` | Настройки. |
 | `screens/debuglogs/DebugLogsScreenSpec.kt` | Отладочные логи: заголовки, подписи кнопок (очистить / **скопировать** / экспорт), экспорт. |
@@ -165,6 +163,13 @@ flowchart TB
 | Файл | Назначение |
 |------|------------|
 | `epub/EpubErrorCodes.kt` | Общие коды ошибок EPUB для UI. |
+
+### `com.chitalka.storage`
+
+| Файл | Назначение |
+|------|------------|
+| `storage/StorageErrorCodes.kt` | Стабильные коды ошибок слоя хранилища (`STORAGE_ERR_*`). Не локализованы — это контракт. |
+| `storage/StorageErrorMessages.kt` | Маппинг кодов на локализованные строки через `I18nCatalog` (`storage.errors.*`). |
 
 ### `com.chitalka.debug` / `com.chitalka.utils`
 

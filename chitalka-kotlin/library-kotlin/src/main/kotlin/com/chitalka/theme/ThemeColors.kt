@@ -1,6 +1,6 @@
 package com.chitalka.theme
 
-/** Режим темы (`'light' | 'dark'` в RN). */
+/** Режим темы — светлый или тёмный. */
 enum class ThemeMode(val code: String) {
     LIGHT("light"),
     DARK("dark"),
@@ -12,9 +12,7 @@ enum class ThemeMode(val code: String) {
     }
 }
 
-/**
- * Палитра в hex-строках (#RRGGBB), как в React Native.
- */
+/** Палитра темы в виде hex-строк (#RRGGBB). */
 data class ThemeColors(
     /** Основной задник экрана */
     val background: String,

@@ -4,7 +4,7 @@ import com.chitalka.ui.readerview.ReaderPageDirection
 import kotlin.math.floor
 import kotlin.math.max
 
-/** Как `clampChapterIndex` в RN: `Math.floor` + границы spine. */
+/** Округляет индекс главы вниз и ограничивает границами spine. */
 fun ReaderScreenSpec.clampChapterIndex(
     index: Int,
     spineLength: Int,
@@ -39,7 +39,7 @@ fun ReaderScreenSpec.webViewBaseUrl(unpackedRootUri: String): String =
         "$unpackedRootUri/"
     }
 
-/** Как в RN: предупреждать, если корень распаковки не под `documentDirectory`. */
+/** Предупреждать, если корень распаковки книги лежит вне каталога приложения. */
 fun ReaderScreenSpec.shouldWarnUnpackedOutsideDocuments(
     unpackedRootUri: String,
     documentDirectory: String?,

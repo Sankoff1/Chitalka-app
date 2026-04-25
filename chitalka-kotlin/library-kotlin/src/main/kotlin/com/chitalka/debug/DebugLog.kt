@@ -2,7 +2,7 @@ package com.chitalka.debug
 
 import java.time.Instant
 
-/** Уровни строки консоли (`DebugLogLevel` в TS). */
+/** Уровень строки лога. */
 enum class DebugLogLevel {
     Log,
     Warn,
@@ -11,7 +11,7 @@ enum class DebugLogLevel {
     Info,
     ;
 
-    /** Строка как в RN: `log`, `warn`, … */
+    /** Имя уровня в нижнем регистре для сериализации и UI: `log`, `warn`, … */
     val wireName: String get() = name.lowercase()
 }
 
@@ -41,7 +41,7 @@ private fun notifyListeners() {
     }
 }
 
-/** TS: `debugLogAppend` */
+/** Добавить запись в кольцевой буфер логов и уведомить подписчиков. */
 fun debugLogAppend(level: DebugLogLevel, message: String) {
     synchronized(lock) {
         entries.addLast(DebugLogEntry(ts = System.currentTimeMillis(), level = level, message = message))
@@ -52,7 +52,7 @@ fun debugLogAppend(level: DebugLogLevel, message: String) {
     notifyListeners()
 }
 
-/** TS: `debugLogSubscribe` — возвращает отписку. */
+/** Подписаться на изменения буфера; возвращает функцию отписки. */
 fun debugLogSubscribe(listener: () -> Unit): () -> Unit {
     synchronized(lock) {
         listeners.add(listener)
@@ -64,10 +64,10 @@ fun debugLogSubscribe(listener: () -> Unit): () -> Unit {
     }
 }
 
-/** TS: `debugLogGetSnapshot` — копия массива. */
+/** Снимок текущего буфера. */
 fun debugLogGetSnapshot(): List<DebugLogEntry> = synchronized(lock) { entries.toList() }
 
-/** TS: `debugLogClear` */
+/** Очистить буфер логов. */
 fun debugLogClear() {
     synchronized(lock) {
         entries.clear()
@@ -75,7 +75,7 @@ fun debugLogClear() {
     notifyListeners()
 }
 
-/** TS: `debugLogFormatExport` */
+/** Текстовое представление буфера для экспорта/копирования. */
 fun debugLogFormatExport(): String {
     val currentEntries = debugLogGetSnapshot()
     val lines = ArrayList<String>(currentEntries.size + EXPORT_LINES_INITIAL_EXTRA)

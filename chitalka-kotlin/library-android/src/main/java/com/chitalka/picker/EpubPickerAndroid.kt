@@ -9,7 +9,7 @@ import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
 /**
- * Связка с системным выбором документа (аналог `pickEpubAsset` из RN).
+ * Связка с системным выбором документа.
  *
  * Регистрация в Activity:
  * ```
@@ -23,10 +23,10 @@ import java.nio.charset.StandardCharsets
  */
 object EpubPickerAndroid {
 
-    /** Те же MIME, что `EPUB_PICK_TYPES` на Android в TS. */
+    /** MIME-типы EPUB для системного picker. */
     fun openDocumentMimeTypes(): Array<String> = epubOpenDocumentMimeTypes()
 
-    /** Контракт для `registerForActivityResult` с нужными MIME. */
+    /** Контракт для `registerForActivityResult`. */
     fun openDocumentContract(): ActivityResultContracts.OpenDocument = ActivityResultContracts.OpenDocument()
 
     /**
@@ -65,7 +65,7 @@ object EpubPickerAndroid {
         return EpubPickResult.Ok(uri = uriStr, bookId = deriveBookId(nameForId))
     }
 
-    /** Если лаунчер или `ContentResolver` выбросили исключение — как `catch` в RN `pickEpubAsset`. */
+    /** Результат, который вернёт обёртка picker'а, если лаунчер или ContentResolver упали. */
     fun pickFailedResult(): EpubPickResult = EpubPickResult.Error("picker.openFailed")
 }
 

@@ -1,8 +1,7 @@
 package com.chitalka.core.types
 
 /**
- * Persisted reading position for a single book.
- * Stored in SQLite with `book_id` as the primary key.
+ * Сохранённая позиция чтения одной книги. Хранится в SQLite, ключ — `book_id`.
  */
 data class ReadingProgress(
     val bookId: String,

@@ -70,7 +70,6 @@
       "unknown": "An unknown error occurred while opening the book.",
       "timeoutCopy": "Copying the EPUB into app storage took too long. Check the file and free space.",
       "timeoutUnzip": "Unpacking the EPUB took too long. The file may be very large or corrupted.",
-      "timeoutBookReady": "Parsing the book structure (epubjs) did not finish in time. Try another file or export logs.",
       "timeoutPrepareChapter": "Preparing the chapter took too long."
     }
   },
@@ -118,5 +117,13 @@
     "confirmDeleteTitle": "Delete book permanently?",
     "confirmDeleteMessage": "The book file and cover will be removed from the device. This cannot be undone.",
     "deleteFailed": "Could not delete the book."
+  },
+  "storage": {
+    "errors": {
+      "openFailed": "Could not open the local database. Check free space and restart the app.",
+      "generic": "Storage error. Please retry or clear app data.",
+      "invalidBookId": "Book id is empty.",
+      "invalidProgressOffset": "Invalid scroll offset value."
+    }
   }
 }

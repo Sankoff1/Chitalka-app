@@ -1,8 +1,6 @@
 package com.chitalka.storage
 
-/**
- * Ошибка слоя хранилища (аналог [StorageServiceError] в RN).
- */
+/** Ошибка слоя хранилища. */
 class StorageServiceError(
     message: String,
     cause: Throwable? = null,

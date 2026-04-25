@@ -29,7 +29,7 @@ fun isLikelyEpubAsset(
     return Regex("""\.epub$""", RegexOption.IGNORE_CASE).containsMatchIn(pathOnly)
 }
 
-/** MIME-типы для `OpenDocument` на Android (аналог `EPUB_PICK_TYPES`). */
+/** MIME-типы EPUB для системного OpenDocument; `application/octet-stream` и wildcard — fallback. */
 fun epubOpenDocumentMimeTypes(): Array<String> =
     arrayOf(
         "application/epub+zip",

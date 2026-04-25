@@ -28,7 +28,7 @@ class LibrarySessionStateTest {
     }
 
     @Test
-    fun welcomeVisible_matchesReactFormula() {
+    fun welcomeVisible_requiresStorageReadyAndEmptyAndNotDismissed() {
         val s = LibrarySessionState(initialBookCount = 0)
         assertFalse(s.isFirstLaunchWelcomeVisible())
         s.markStorageReady(true)

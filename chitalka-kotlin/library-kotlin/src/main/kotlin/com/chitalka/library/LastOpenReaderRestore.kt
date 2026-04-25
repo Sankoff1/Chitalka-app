@@ -2,10 +2,7 @@
 
 package com.chitalka.library
 
-/**
- * Результат попытки автооткрытия читалки по [LAST_OPEN_BOOK_STORAGE_KEY]
- * (см. эффект `lastOpenRestoreAttempted` в `LibraryContext.tsx`).
- */
+/** Результат попытки автооткрытия читалки по [LAST_OPEN_BOOK_STORAGE_KEY]. */
 sealed class LastOpenReaderRestoreOutcome {
     /** Ключа нет или пусто после trim. */
     data object NoStoredLastOpen : LastOpenReaderRestoreOutcome()

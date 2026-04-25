@@ -97,7 +97,7 @@ class EpubService(
         val destUri = unpackedRootUri ?: throw EpubServiceError("Внутренняя ошибка: нет каталога распаковки после unzip.")
 
         val epubRootFileUrl = ensureDirectoryRootFileUrl(destUri)
-        logEpubOpen("Шаг 6: разбор OPF (без epubjs book.ready)", epubRootFileUrl)
+        logEpubOpen("Шаг 6: разбор OPF", epubRootFileUrl)
 
         val (opfXml, opfDir) =
             try {
@@ -261,13 +261,15 @@ class EpubService(
             val firstChapterUri =
                 try {
                     getSpineChapterUri(0)
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    ChitalkaMirrorLog.w(EPUB_OPEN_LOG, "fallback cover: spine[0] недоступен", e)
                     return@withContext null
                 }
             val html =
                 try {
                     readUtf8FromFileUri(firstChapterUri)
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    ChitalkaMirrorLog.w(EPUB_OPEN_LOG, "fallback cover: чтение главы упало $firstChapterUri", e)
                     return@withContext null
                 }
             val srcMatch =

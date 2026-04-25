@@ -3,22 +3,17 @@ package com.chitalka.ui.firstlaunch
 import com.chitalka.i18n.AppLocale
 import com.chitalka.i18n.I18nCatalog
 
-/**
- * Спецификация модалки первого запуска / пустой библиотеки (`FirstLaunchModal.tsx` без Modal/Pressable).
- */
+/** Спецификация модалки первого запуска / пустой библиотеки. */
 object FirstLaunchModalSpec {
 
-    /** Ключи `t('firstLaunch.*')` в RN. */
+    /** i18n-ключи модалки. */
     object I18nKeys {
         const val MESSAGE = "firstLaunch.message"
         const val CANCEL = "firstLaunch.cancel"
         const val PICK_EPUB = "firstLaunch.pickEpub"
     }
 
-    /**
-     * Числа из `StyleSheet` в RN (логические единицы ≈ dp/sp на Android).
-     * Граница карточки — `hairline`; в спецификации 1 dp, в UI использовать `Divider` / `hairline`.
-     */
+    /** Геометрия модалки в dp/sp. */
     object Layout {
         const val OVERLAY_HORIZONTAL_PADDING_DP: Int = 28
         const val CARD_CORNER_RADIUS_DP: Int = 14
@@ -36,19 +31,14 @@ object FirstLaunchModalSpec {
         const val PRESSED_OPACITY: Float = 0.88f
     }
 
-    /** Фиксированные цвета из RN (остальное из темы: `menuBackground`, `text`, `interactive`, …). */
+    /** Фиксированные цвета модалки; остальное берётся из темы. */
     object Colors {
-        /** Подсказка ошибки (`#a33` в TS). */
+        /** Подсказка ошибки. */
         const val HINT_HEX: String = "#aa3333"
 
-        /** `rgba(0,0,0,0.45)` для затемнения под модалкой. */
+        /** Затемнение под модалкой (~45 %). */
         const val OVERLAY_SCRIM_ALPHA: Float = 0.45f
     }
-
-    /**
-     * Суффикс альфы к `colors.textSecondary` для рамки карточки (`textSecondary + '44'` в RN, ~27 %).
-     */
-    const val CARD_BORDER_ALPHA_SUFFIX: String = "44"
 
     data class Strings(
         val message: String,

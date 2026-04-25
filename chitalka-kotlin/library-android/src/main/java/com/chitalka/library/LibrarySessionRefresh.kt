@@ -2,9 +2,7 @@ package com.chitalka.library
 
 import com.chitalka.storage.StorageService
 
-/**
- * Обновляет [LibrarySessionState.bookCount] из SQLite (аналог `refreshBookCount` в `LibraryContext.tsx`).
- */
+/** Обновляет [LibrarySessionState.bookCount] из SQLite. На ошибке — счётчик становится 0. */
 suspend fun LibrarySessionState.refreshBookCount(storage: StorageService) {
     try {
         updateBookCount(storage.countLibraryBooks())

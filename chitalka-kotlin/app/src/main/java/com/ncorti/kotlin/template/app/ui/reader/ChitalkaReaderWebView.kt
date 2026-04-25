@@ -34,7 +34,7 @@ fun ChitalkaReaderWebView(
     initialScrollY: Double,
     themeMode: ThemeMode,
     themeColors: ThemeColors,
-    /** Как `pointerEvents: 'none'` в RN во время перелистывания и на неактивном слое. */
+    /** Блокирует касания во время перелистывания и на неактивном слое. */
     interceptAllTouches: Boolean,
     onBridgeMessage: (ReaderBridgeInboundMessage) -> Unit,
     modifier: Modifier = Modifier,

@@ -75,6 +75,7 @@ internal fun WelcomeDialog(
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
+        // Закрытие только через кнопки «Выбрать .epub» / «Отмена»: back и тап по scrim не дисмиссят.
         onDismissRequest = { },
         icon = {
             Icon(

@@ -7,7 +7,7 @@ import org.junit.Test
 class BookActionsSheetSpecTest {
 
     @Test
-    fun sheetBottomPadding_matchesReactFormula() {
+    fun sheetBottomPadding_appliesMinInsetAndExtra() {
         assertEquals(20, BookActionsSheetSpec.sheetBottomPaddingDp(12))
         assertEquals(24, BookActionsSheetSpec.sheetBottomPaddingDp(16))
         assertEquals(20, BookActionsSheetSpec.sheetBottomPaddingDp(0))

@@ -2,9 +2,7 @@ package com.chitalka.ui.readerview
 
 import com.chitalka.theme.ThemeColors
 
-/**
- * Вставка тёмных стилей перед `</head>` (`injectDarkReaderHead` в `ReaderView.tsx`).
- */
+/** Вставка тёмных стилей в `<head>` HTML главы перед загрузкой в WebView. */
 fun injectDarkReaderHead(
     html: String,
     colors: ThemeColors,

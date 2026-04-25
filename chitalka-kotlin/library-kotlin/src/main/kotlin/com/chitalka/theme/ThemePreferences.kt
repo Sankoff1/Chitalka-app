@@ -2,14 +2,10 @@ package com.chitalka.theme
 
 import com.chitalka.library.LastOpenBookPersistence
 
-/**
- * Ключ AsyncStorage в RN (`ThemeContext.tsx`); тот же контракт для Android KV.
- */
+/** Ключ хранилища для режима темы. */
 const val THEME_MODE_STORAGE_KEY = "chitalka_theme_mode"
 
-/**
- * Снимок для UI: режим и палитра без лишнего кэширования — палитры статичны в [getColorsForMode].
- */
+/** Снимок для UI: режим и палитра. Палитры статичны (см. [getColorsForMode]) — кэшировать не нужно. */
 data class ThemeUiState(
     val mode: ThemeMode,
 ) {
@@ -17,9 +13,7 @@ data class ThemeUiState(
         get() = getColorsForMode(mode)
 }
 
-/**
- * Чтение сохранённого режима. Невалидные или отсутствующие значения → `null` (как в RN при ошибке/неизвестном stored).
- */
+/** Чтение сохранённого режима. Невалидное / отсутствующее → `null` (вызывающий применит дефолт). */
 suspend fun loadPersistedThemeMode(storage: LastOpenBookPersistence): ThemeMode? =
     try {
         val stored = storage.getItem(THEME_MODE_STORAGE_KEY) ?: return null
@@ -28,25 +22,23 @@ suspend fun loadPersistedThemeMode(storage: LastOpenBookPersistence): ThemeMode?
         null
     }
 
-/** Сохранение режима; ошибки глотаются (best-effort, как `persistMode` в RN). */
+/** Сохранение режима; ошибки глотаются — потеря настройки не критична. */
 suspend fun persistThemeMode(storage: LastOpenBookPersistence, mode: ThemeMode) {
     try {
         storage.setItem(THEME_MODE_STORAGE_KEY, mode.code)
     } catch (_: Exception) {
-        /* best-effort */
+        // best-effort
     }
 }
 
-/** Переключение light ↔ dark (аналог `toggleTheme` без React state). */
+/** Переключение light ↔ dark. */
 fun ThemeMode.toggle(): ThemeMode =
     when (this) {
         ThemeMode.LIGHT -> ThemeMode.DARK
         ThemeMode.DARK -> ThemeMode.LIGHT
     }
 
-/**
- * Переключить режим и сохранить; возвращает новый режим (часть логики `toggleTheme` в RN).
- */
+/** Переключить режим и сохранить. Возвращает новый режим. */
 suspend fun togglePersistedThemeMode(storage: LastOpenBookPersistence, current: ThemeMode): ThemeMode {
     val next = current.toggle()
     persistThemeMode(storage, next)

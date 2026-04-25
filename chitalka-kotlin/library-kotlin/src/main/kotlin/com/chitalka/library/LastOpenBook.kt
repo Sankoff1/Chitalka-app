@@ -2,8 +2,7 @@
 package com.chitalka.library
 
 /**
- * Абстракция над key-value (аналог `AsyncStorage` в RN).
- * Реализацию даёт Android-слой (DataStore / SharedPreferences).
+ * Абстракция над key-value хранилищем. Реализация на Android — поверх SharedPreferences.
  */
 interface LastOpenBookPersistence {
     suspend fun getItem(key: String): String?
@@ -17,7 +16,7 @@ interface LastOpenBookPersistence {
  */
 const val LAST_OPEN_BOOK_STORAGE_KEY = "chitalka_last_open_book_id"
 
-/** Как в RN: `v && v.trim() ? v : null` — возвращаем сырое значение, если после trim не пусто. */
+/** Возвращает исходную строку, если она не пуста после trim; иначе `null`. Trim применяется только для проверки. */
 private fun String?.storedBookIdOrNull(): String? {
     if (this == null) return null
     val trimmed = trim()
@@ -36,7 +35,7 @@ suspend fun setLastOpenBookId(storage: LastOpenBookPersistence, bookId: String) 
     try {
         storage.setItem(LAST_OPEN_BOOK_STORAGE_KEY, bookId)
     } catch (_: Exception) {
-        /* best-effort: отсутствие восстановления не ломает чтение */
+        // best-effort: потеря ключа не ломает текущее чтение, только автооткрытие в следующий запуск
     }
 }
 
@@ -44,6 +43,6 @@ suspend fun clearLastOpenBookId(storage: LastOpenBookPersistence) {
     try {
         storage.removeItem(LAST_OPEN_BOOK_STORAGE_KEY)
     } catch (_: Exception) {
-        /* best-effort */
+        // best-effort
     }
 }

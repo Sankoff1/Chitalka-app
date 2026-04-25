@@ -1,13 +1,11 @@
 package com.chitalka.epub
 
+import com.chitalka.debug.ChitalkaMirrorLog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * Метаданные из OPF после распаковки — только файловая система, без WebView.
- * Аналог RN `readFilesystemLibraryMetadata`.
- */
+/** Метаданные книги (title/author/cover) из OPF; только файловая система, без WebView. */
 suspend fun readFilesystemLibraryMetadata(unpackedRootUri: String): FilesystemLibraryMetadata =
     withContext(Dispatchers.IO) {
         try {
@@ -26,7 +24,8 @@ suspend fun readFilesystemLibraryMetadata(unpackedRootUri: String): FilesystemLi
             }
         } catch (e: CancellationException) {
             throw e
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            ChitalkaMirrorLog.w(EPUB_OPEN_LOG, "metadata read failed root=$unpackedRootUri", e)
             FilesystemLibraryMetadata("", "", null)
         }
     }

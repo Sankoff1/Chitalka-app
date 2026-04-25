@@ -23,7 +23,7 @@ private class InMemoryPersistence : LastOpenBookPersistence {
 class ThemePreferencesTest {
 
     @Test
-    fun storageKey_matchesReactNative() {
+    fun storageKey_isStable() {
         assertEquals("chitalka_theme_mode", THEME_MODE_STORAGE_KEY)
     }
 

@@ -1,7 +1,7 @@
 @file:Suppress("MatchingDeclarationName")
 package com.chitalka.i18n
 
-/** Поддерживаемые языки приложения (аналог `AppLocale` в TS). */
+/** Поддерживаемые языки приложения. */
 enum class AppLocale(val code: String) {
     RU("ru"),
     EN("en"),
@@ -12,7 +12,7 @@ enum class AppLocale(val code: String) {
     }
 }
 
-/** Порядок как в RN: `ru`, затем `en`. */
+/** Порядок локалей в UI выбора языка. */
 val APP_LOCALES: List<AppLocale> = listOf(AppLocale.RU, AppLocale.EN)
 
 const val LOCALE_STORAGE_KEY = "chitalka_locale"

@@ -22,7 +22,7 @@ private class InMemoryPersistence : LastOpenBookPersistence {
 class LastOpenBookTest {
 
     @Test
-    fun storageKey_matchesReactNative() {
+    fun storageKey_isStable() {
         assertEquals("chitalka_last_open_book_id", LAST_OPEN_BOOK_STORAGE_KEY)
     }
 

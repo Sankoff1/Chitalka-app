@@ -98,7 +98,7 @@ fun ChitalkaLibraryListPane(
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(BookCardSpec.Layout.CARD_MARGIN_BOTTOM_DP.dp),
             ) {
-                items(books, key = { it.bookId }) { book ->
+                items(books, key = { it.record.bookId }) { book ->
                     BookRowCard(
                         book = book,
                         i18n = i18n,

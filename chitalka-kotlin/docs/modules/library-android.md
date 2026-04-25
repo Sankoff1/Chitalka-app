@@ -46,6 +46,7 @@ peers:
 | `com.chitalka.i18n.*` | Импорт EPUB (каталог, локаль) |
 | `com.chitalka.utils.withTimeout` | `EpubService` |
 | `com.chitalka.library.LibrarySessionState` | Расширение `refreshBookCount` |
+| `com.chitalka.storage.STORAGE_ERR_*` | Коды для `StorageServiceError` (см. `StorageErrorCodes.kt` в JVM-модуле) |
 
 **Расширения и top-level в пакете `com.chitalka.library`:** файл `LibrarySessionRefresh.kt` — `suspend fun LibrarySessionState.refreshBookCount(storage: StorageService)`; импортируется в `app` как `com.chitalka.library.refreshBookCount`.
 
@@ -79,7 +80,7 @@ peers:
 | `com/chitalka/storage/StorageServiceTrash.kt` | Extension-функции `moveBookToTrash` / `restoreBookFromTrash` / `purgeBook` / `clearAllData` — работают через `withDb`. |
 | `com/chitalka/storage/StorageServiceMappers.kt` | `Cursor.mapLibraryBookRecordByOrdinal`, `Cursor.mapJoinedRowByOrdinal` (вычисляет `progressFraction`), `assertNonEmptyBookId` / `assertValidProgress`. |
 | `com/chitalka/storage/ChitalkaSqliteOpenHelper.kt` | SQLite схема/миграции. `onConfigure` включает WAL и `PRAGMA synchronous=NORMAL`/`temp_store=MEMORY`. |
-| `com/chitalka/storage/StorageServiceError.kt` | Ошибки слоя хранилища. |
+| `com/chitalka/storage/StorageServiceError.kt` | Исключение слоя хранилища. В `message` всегда лежит стабильный код из `com.chitalka.storage.StorageErrorCodes` (без локализованного текста); UI-маппинг — `storageErrorMessage(locale, code)` в `library-kotlin`. |
 
 ### EPUB (`com.chitalka.epub`)
 
@@ -124,14 +125,6 @@ peers:
 | `com/chitalka/debug/DebugAutoLoadEpubRunner.kt` | `runDebugAutoLoadEpubIfNeeded` — автозагрузка EPUB в debug. |
 | `com/chitalka/debug/ChitalkaMirrorLog.kt` | Зеркало `android.util.Log` → `debugLogAppend` для вкладки отладочных логов в `app`. |
 
-### Наследие шаблона
-
-| Файл | Назначение |
-|------|------------|
-| `com/ncorti/kotlin/template/library/android/ToastUtil.kt` | Утилита Toast (шаблон). |
-
----
-
 ## Поток данных: импорт EPUB
 
 ```mermaid
@@ -155,7 +148,6 @@ sequenceDiagram
 | Путь | Тип |
 |------|-----|
 | `chitalka-kotlin/library-android/src/androidTest/java/com/chitalka/storage/StorageServiceInstrumentedTest.kt` | Инструментальный. |
-| `chitalka-kotlin/library-android/src/androidTest/java/com/ncorti/kotlin/template/library/android/ToastUtilTest.kt` | Шаблон. |
 
 ---
 

@@ -1,8 +1,8 @@
 package com.chitalka.epub
 
 /**
- * Сообщения [Throwable.message] у ошибок открытия EPUB (как в RN `EpubService` / `ReaderScreen`).
- * Android [EpubServiceError] использует те же строки.
+ * Стабильные коды ошибок открытия EPUB. Android `EpubServiceError` пробрасывает их как [Throwable.message],
+ * UI-слой матчит по коду и подменяет на локализованный текст.
  */
 const val EPUB_EMPTY_SPINE: String = "EMPTY_SPINE"
 

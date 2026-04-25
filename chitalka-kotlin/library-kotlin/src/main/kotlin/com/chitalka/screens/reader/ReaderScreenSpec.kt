@@ -4,7 +4,8 @@ import com.chitalka.i18n.AppLocale
 import com.chitalka.i18n.I18nCatalog
 
 /**
- * Экран читалки без WebView / EpubService / Storage (`ReaderScreen.tsx`).
+ * Контракт экрана читалки: типы слоёв, тайминги анимации, i18n-ключи и геометрия.
+ * Не зависит от WebView / EpubService / Storage — чистый Kotlin.
  */
 object ReaderScreenSpec {
 
@@ -47,22 +48,16 @@ object ReaderScreenSpec {
     }
 
     object Timing {
-        /** Автосохранение прогресса после скролла (`setTimeout(..., 500)` в RN). */
+        /** Автосохранение прогресса после скролла. */
         const val SCROLL_PERSIST_DEBOUNCE_MS: Long = 500L
 
-        /**
-         * Таймаут ожидания `ready` неактивного слоя перед стартом анимации
-         * (`setTimeout(..., 400)` в `waitForPendingLayer`).
-         */
+        /** Таймаут ожидания `ready` неактивного слоя перед стартом анимации перелистывания. */
         const val PENDING_LAYER_READY_TIMEOUT_MS: Long = 400L
 
-        /** Длительность `Animated.timing` перелистывания глав. */
+        /** Длительность анимации перелистывания глав. */
         const val CHAPTER_TRANSITION_DURATION_MS: Long = 380L
 
-        /**
-         * Throttle скролла на стороне приложения после сообщений WebView — см.
-         * [com.chitalka.ui.readerview.READER_BRIDGE_SCROLL_DEBOUNCE_MS].
-         */
+        /** Throttle обработки scroll-сообщений из WebView. */
         const val BRIDGE_SCROLL_DEBOUNCE_MS: Long =
             com.chitalka.ui.readerview.READER_BRIDGE_SCROLL_DEBOUNCE_MS
     }
@@ -74,13 +69,13 @@ object ReaderScreenSpec {
         private const val PROGRESS_END: Float = 1f
         private const val PROGRESS_START: Float = 0f
 
-        /** Середина интерполяции `activeOpacity` по оси прогресса (RN: 0.6). */
+        /** Середина интерполяции `activeOpacity` по оси прогресса. */
         private const val ACTIVE_OPACITY_MID_PROGRESS: Float = 0.6f
 
-        /** Значение `activeOpacity` в середине (RN: 0.25). */
+        /** Значение `activeOpacity` в середине. */
         private const val ACTIVE_OPACITY_MID_VALUE: Float = 0.25f
 
-        /** До этой доли прогресса входящая страница остаётся с opacity 0 (RN: 0.3). */
+        /** До этой доли прогресса входящая страница остаётся с opacity 0. */
         const val INCOMING_INVISIBLE_UNTIL_PROGRESS: Float = 0.3f
 
         /** `1f` − [INCOMING_INVISIBLE_UNTIL_PROGRESS] — длина спада входящей шейды. */
@@ -112,46 +107,14 @@ object ReaderScreenSpec {
     }
 
     object Layout {
-        const val ERROR_SCREEN_PADDING_TOP_EXTRA_DP: Int = 24
-        const val ERROR_SCREEN_PADDING_DP: Int = 24
-        const val ERROR_TITLE_FONT_SP: Int = 18
-        const val ERROR_TITLE_MARGIN_BOTTOM_DP: Int = 12
-        const val ERROR_BODY_FONT_SP: Int = 15
-        const val ERROR_BODY_LINE_HEIGHT_SP: Int = 22
-        const val ERROR_BACK_MARGIN_TOP_DP: Int = 20
-        const val ERROR_BACK_PADDING_VERTICAL_DP: Int = 12
-        const val ERROR_BACK_PADDING_HORIZONTAL_DP: Int = 18
-        const val ERROR_BACK_CORNER_RADIUS_DP: Int = 8
-        const val ERROR_BACK_PRESSED_OPACITY: Float = 0.88f
-        const val ERROR_BACK_BACKGROUND_LIGHT_HEX: String = "#e8e6e1"
-
-        const val LIBRARY_BAR_PADDING_HORIZONTAL_DP: Int = 8
-        const val LIBRARY_BAR_PADDING_TOP_DP: Int = 6
-        const val LIBRARY_BAR_PADDING_BOTTOM_DP: Int = 4
-        const val LIBRARY_LINK_PADDING_VERTICAL_DP: Int = 8
-        const val LIBRARY_LINK_PADDING_HORIZONTAL_DP: Int = 8
-        const val LIBRARY_LINK_CORNER_RADIUS_DP: Int = 8
-        const val LIBRARY_LINK_PRESSED_OPACITY: Float = 0.85f
-        const val LIBRARY_LINK_DISABLED_OPACITY: Float = 0.45f
-        const val LIBRARY_LINK_TEXT_FONT_SP: Int = 16
-
         const val PAGE_INDICATOR_PADDING_TOP_DP: Int = 6
         const val PAGE_INDICATOR_PADDING_BOTTOM_MIN_DP: Int = 8
         const val PAGE_INDICATOR_TEXT_FONT_SP: Int = 13
-
-        const val LOADER_GAP_DP: Int = 12
-        const val LOADER_TEXT_FONT_SP: Int = 15
-
-        const val PAGE_LAYER_SHADOW_RADIUS_DP: Int = 12
-        const val PAGE_LAYER_ELEVATION_DP: Int = 12
     }
 
     object Colors {
-        const val HAIRLINE_DARK_MODE: String = "rgba(255,255,255,0.12)"
-        const val HAIRLINE_LIGHT_MODE: String = "rgba(0,0,0,0.12)"
         const val READER_FRAME_BACKGROUND_LIGHT_HEX: String = "#ece9e1"
         const val READER_PAPER_BACKGROUND_LIGHT_HEX: String = "#ffffff"
-        const val PAGE_SHADE_HEX: String = "#000000"
     }
 
     const val EMPTY_READER_HTML: String =
@@ -176,9 +139,7 @@ object ReaderScreenSpec {
             mapOf("current" to currentOneBased, "total" to totalChapters),
         )
 
-    /**
-     * Текст индикатора как в RN: «`current+1`/`spine.length`» (без i18n-шаблона).
-     */
+    /** Текст индикатора страницы вида «`current+1`/`spine.length`» — без i18n-шаблона. */
     fun pageIndicatorSlash(
         zeroBasedChapterIndex: Int,
         spineLength: Int,

@@ -29,8 +29,4 @@ class TrashScreenSpecTest {
         assertTrue(line.endsWith("МБ"))
     }
 
-    @Test
-    fun coverHeight_matchesAspect() {
-        assertEquals(104, TrashScreenSpec.Layout.coverHeightDp())
-    }
 }

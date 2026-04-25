@@ -1,21 +1,17 @@
 package com.chitalka.navigation
 
 /**
- * Экраны корневого нативного стека без заголовка (`RootStack.tsx`: `Stack.Screen` Main и Reader).
- *
- * Вложенный drawer (`AppDrawer`, `DrawerScreen`) живёт под [Main]; модуль `nav-drawer` подключается отдельно.
+ * Корневой стек экранов: drawer-обёртка [Main] и [Reader] поверх.
  */
 sealed interface RootStackDestination {
-    /** Drawer и основная навигация библиотеки. */
     data object Main : RootStackDestination
 
-    /** Читалка; аргументы как `RootStackParamList['Reader']` в RN. */
     data class Reader(
         val params: ReaderRouteParams,
     ) : RootStackDestination
 }
 
-/** Имя маршрута в графе (Compose Navigation / кастомный роутер). */
+/** Имя маршрута в графе навигации. */
 val RootStackDestination.routeId: String
     get() =
         when (this) {

@@ -5,13 +5,13 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout as kotlinxWithTimeout
 
 /**
- * Исключение при срабатывании таймаута; [message] совпадает с переданной меткой (как `Error(label)` в TS).
+ * Исключение при срабатывании таймаута; [message] совпадает с переданной меткой.
  */
 class WithTimeoutException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
 /**
  * Прерывает ожидание через [ms] миллисекунд, если [block] не завершился.
- * Работа в [block] отменяется с точки зрения корутин; «сырые» блокирующие вызовы, как и в RN, могут продолжиться.
+ * Корутины внутри [block] отменяются; блокирующие нативные вызовы могут продолжиться.
  */
 suspend fun <T> withTimeout(ms: Long, label: String, block: suspend () -> T): T =
     try {

@@ -5,12 +5,10 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-/**
- * Throttling скролла на стороне RN после сообщений из WebView (`setTimeout(..., 350)` в `handleMessage`).
- */
+/** Throttle обработки scroll-сообщений в нативе после получения из WebView. */
 const val READER_BRIDGE_SCROLL_DEBOUNCE_MS: Long = 350L
 
-/** Throttle внутри страницы перед `postMessage` scroll (`setTimeout(postY, 200)` в инжекте). */
+/** Throttle отправки scroll-сообщений со страницы (внутри injected JS). */
 const val READER_WEB_SCROLL_POST_DELAY_MS: Long = 200L
 
 private val bridgeJson = Json { ignoreUnknownKeys = true }
@@ -28,7 +26,9 @@ sealed class ReaderBridgeInboundMessage {
 }
 
 /**
- * Разбор `postMessage(JSON)` из `ReaderView` (scroll / page / ready).
+ * Разбор JSON-сообщения из WebView в типизированное событие моста.
+ * Возвращает `null` на любое не-наше или повреждённое сообщение — это часть контракта,
+ * вызывающий не должен ронять WebView из-за случайного `postMessage` от стороннего скрипта.
  */
 fun parseReaderBridgeInboundMessage(json: String): ReaderBridgeInboundMessage? =
     try {

@@ -7,12 +7,10 @@ private const val RESOURCE_PATH = "/chitalka/reader/injectedScrollBridge.js"
 
 private object ReaderBridgeAssets
 
-/** Fallback, если нет `requestAnimationFrame` (мс, близко к 2×16 ms). */
+/** Fallback задержки готовности страницы, если нет `requestAnimationFrame` (~2×16 мс). */
 const val READER_READY_RAF_FALLBACK_MS: Int = 32
 
-/**
- * Тот же скрипт, что `injectedJavaScript` в `ReaderView.tsx` (скролл, тап-зоны, свайпы).
- */
+/** JS, инжектируемый в страницу читалки: throttled scroll, тап-зоны, свайпы. */
 fun readerInjectedScrollBridge(): String {
     val stream =
         checkNotNull(ReaderBridgeAssets::class.java.getResourceAsStream(RESOURCE_PATH)) {
@@ -22,7 +20,7 @@ fun readerInjectedScrollBridge(): String {
 }
 
 /**
- * Скрипт после `onLoadEnd`: начальный скролл и `ready` после двух rAF (`handleLoadEnd` в RN).
+ * Скрипт, выполняемый после `onPageFinished`: начальный скролл и сигнал `ready` после двух rAF.
  */
 fun readerLoadEndScrollAndReadyScript(initialScrollY: Double): String {
     val raw = floor(initialScrollY)

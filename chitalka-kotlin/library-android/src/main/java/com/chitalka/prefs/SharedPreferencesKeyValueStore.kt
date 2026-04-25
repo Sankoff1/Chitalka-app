@@ -9,9 +9,7 @@ import kotlinx.coroutines.withContext
 
 private const val PREFS_NAME = "chitalka_kv"
 
-/**
- * [LastOpenBookPersistence] поверх [SharedPreferences] (аналог `AsyncStorage` для ключей темы/локали/last open).
- */
+/** [LastOpenBookPersistence] поверх [SharedPreferences] для ключей темы, локали и last-open. */
 class SharedPreferencesKeyValueStore(
     context: Context,
     prefsName: String = PREFS_NAME,

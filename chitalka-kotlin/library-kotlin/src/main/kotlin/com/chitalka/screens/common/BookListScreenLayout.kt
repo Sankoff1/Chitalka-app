@@ -1,8 +1,6 @@
 package com.chitalka.screens.common
 
-/**
- * Общая вёрстка списка + FAB на экранах «Читаю сейчас», «Книги и документы», избранное (`StyleSheet` в RN).
- */
+/** Общая вёрстка списка + FAB для экранов «Читаю сейчас», «Книги и документы», «Избранное». */
 object BookListScreenLayout {
     const val LIST_CONTENT_PADDING_DP: Int = 16
     const val EMPTY_TEXT_MARGIN_TOP_DP: Int = 48

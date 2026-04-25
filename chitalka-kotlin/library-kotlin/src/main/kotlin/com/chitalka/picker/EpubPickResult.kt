@@ -1,6 +1,6 @@
 package com.chitalka.picker
 
-/** Результат выбора EPUB (аналог `EpubPickResult` в TS). */
+/** Результат выбора EPUB через системный picker. */
 sealed class EpubPickResult {
     data class Ok(
         val uri: String,

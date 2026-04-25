@@ -20,7 +20,7 @@ class FirstLaunchModalSpecTest {
     }
 
     @Test
-    fun layoutTokens_matchReactNativeStyleSheet() {
+    fun layoutTokens_haveSensibleSizes() {
         assertEquals(28, FirstLaunchModalSpec.Layout.OVERLAY_HORIZONTAL_PADDING_DP)
         assertEquals(14, FirstLaunchModalSpec.Layout.CARD_CORNER_RADIUS_DP)
         assertEquals(0.88f, FirstLaunchModalSpec.Layout.PRESSED_OPACITY, 0f)

@@ -4,9 +4,7 @@ import com.chitalka.i18n.AppLocale
 import com.chitalka.i18n.I18nCatalog
 import kotlin.math.max
 
-/**
- * Нижний лист действий с книгой (`BookActionsSheet.tsx` без Modal / Animated).
- */
+/** Контракт нижнего листа действий с книгой. */
 object BookActionsSheetSpec {
 
     object I18nKeys {
@@ -61,19 +59,12 @@ object BookActionsSheetSpec {
         const val CANCEL_PRESSED_OPACITY: Float = 0.85f
     }
 
-    /** Нижний отступ листа: `Math.max(insets.bottom, 12) + 8` в RN. */
+    /** Нижний отступ листа: max(insets.bottom, минимум) + хвостовой extra. */
     fun sheetBottomPaddingDp(safeInsetBottomDp: Int): Int =
         max(safeInsetBottomDp, Layout.SHEET_BOTTOM_PADDING_MIN_INSET_DP) + Layout.SHEET_BOTTOM_PADDING_EXTRA_DP
 
-    /** Цвет деструктивного действия (фикс в RN). */
+    /** Цвет деструктивного действия. */
     const val DESTRUCTIVE_ACTION_HEX: String = "#D93A3A"
-
-    /** К `colors.textSecondary` для разделителей и grabber (`+ '26'`). */
-    const val SEPARATOR_ALPHA_SUFFIX: String = "26"
-
-    /** Ripple / подсветка нажатия (`+ '55'`, `+ '33'`). */
-    const val RIPPLE_ALPHA_SUFFIX: String = "55"
-    const val ROW_PRESSED_ALPHA_SUFFIX: String = "33"
 
     object MaterialIcons {
         const val FAVORITE = "favorite"
@@ -81,7 +72,7 @@ object BookActionsSheetSpec {
         const val DELETE_OUTLINE = "delete-outline"
     }
 
-    /** Заглушка обложки в RN — литерал в `Text`. */
+    /** Заглушка обложки (эмодзи книги). */
     const val COVER_PLACEHOLDER_GLYPH: String = "\uD83D\uDCD6"
 
     fun sheetTitle(locale: AppLocale): String =

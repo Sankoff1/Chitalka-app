@@ -8,7 +8,7 @@ import org.junit.Test
 class DrawerNavigationSpecTest {
 
     @Test
-    fun targetWidth_matchesReactNative() {
+    fun targetWidth_is288dp() {
         assertEquals(288, DrawerNavigationSpec.TARGET_WIDTH_DP)
     }
 

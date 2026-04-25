@@ -4,9 +4,7 @@ package com.chitalka.i18n
 
 import com.chitalka.library.LastOpenBookPersistence
 
-/**
- * Снимок для UI: текущая локаль и синхронный перевод (аналог `useI18n().t` / `tSync` в RN).
- */
+/** Снимок для UI: текущая локаль и синхронный перевод. */
 data class I18nUiState(
     val locale: AppLocale,
 ) {
@@ -15,7 +13,8 @@ data class I18nUiState(
 }
 
 /**
- * Чтение сохранённой локали. Невалидное или отсутствующее значение → `null` (в RN до hydrate остаётся дефолт `ru`).
+ * Чтение сохранённой локали. Невалидное или отсутствующее значение → `null`
+ * (вызывающий применит дефолт).
  */
 suspend fun loadPersistedLocale(storage: LastOpenBookPersistence): AppLocale? =
     try {
@@ -25,11 +24,11 @@ suspend fun loadPersistedLocale(storage: LastOpenBookPersistence): AppLocale? =
         null
     }
 
-/** Сохранение локали; ошибки глотаются (best-effort, как в RN `setLocale`). */
+/** Сохранение локали; ошибки глотаются — выбор языка не критичен для работы. */
 suspend fun persistLocale(storage: LastOpenBookPersistence, locale: AppLocale) {
     try {
         storage.setItem(LOCALE_STORAGE_KEY, locale.code)
     } catch (_: Exception) {
-        /* best-effort */
+        // best-effort
     }
 }

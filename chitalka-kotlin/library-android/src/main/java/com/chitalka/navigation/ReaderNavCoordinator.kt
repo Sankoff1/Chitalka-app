@@ -11,12 +11,12 @@ private const val RETRY_MS = 50L
 private const val MAX_ATTEMPTS = 50
 
 /**
- * Аналог RN `navigationRef` + `pendingReader` + [flushReaderNavigationIfPending] / [navigateToReader].
+ * Координатор перехода в читалку: откладывает навигацию до готовности `NavHost`.
  *
- * Передайте `isNavHostReady` (например `navController.currentDestination != null` или флаг из `NavHost`),
- * и `performNavigateToReader` — вызов `navController.navigate(Reader, bundleOf(...))` или эквивалент.
+ * Передайте `isNavHostReady` (например `navController.currentDestination != null`)
+ * и `performNavigateToReader` — фактический вызов `navController.navigate(...)`.
  *
- * [scope] должен использовать [kotlinx.coroutines.Dispatchers.Main] (как `setTimeout` в JS).
+ * [scope] должен использовать main-dispatcher, чтобы обращения к NavController шли с UI-потока.
  */
 class ReaderNavCoordinator(
     private val scope: CoroutineScope,
@@ -27,9 +27,7 @@ class ReaderNavCoordinator(
     private var pendingReader: ReaderRouteParams? = null
     private var retryJob: Job? = null
 
-    /**
-     * Вызывать из `NavHost` / `Navigation` `onReady`, чтобы не терять переход до готовности графа.
-     */
+    /** Вызывать при появлении/смене активного destination, чтобы не потерять отложенный переход. */
     fun flushReaderNavigationIfPending() {
         synchronized(lock) {
             val pending = pendingReader ?: return
@@ -41,9 +39,7 @@ class ReaderNavCoordinator(
         }
     }
 
-    /**
-     * Запланировать переход в читалку с повторными попытками (50 мс × 50), как в RN.
-     */
+    /** Запланировать переход в читалку. Если NavHost не готов — повторяем 50 мс × 50. */
     fun navigateToReader(bookPath: String, bookId: String) {
         synchronized(lock) {
             pendingReader = ReaderRouteParams(bookPath = bookPath, bookId = bookId)
@@ -73,7 +69,7 @@ class ReaderNavCoordinator(
             }
     }
 
-    /** Сбросить отложенный переход (например при destroy Activity). */
+    /** Сбросить отложенный переход (например, при destroy Activity). */
     fun clearPendingReader() {
         retryJob?.cancel()
         retryJob = null

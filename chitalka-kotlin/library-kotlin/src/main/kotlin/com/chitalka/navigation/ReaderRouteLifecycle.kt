@@ -5,15 +5,13 @@ import com.chitalka.library.clearLastOpenBookId
 import com.chitalka.library.setLastOpenBookId
 
 /**
- * Поведение обёртки читалки над корневым стеком (`ReaderScreenWrapper.tsx`):
- * ключ последней книги, счётчик библиотеки, `goBack`.
+ * Lifecycle-крючки маршрута читалки: ключ «последняя книга» + обновление счётчика библиотеки.
  *
- * **Важно:** [onReaderStackBeforeRemove] вызывать только из навигационного `beforeRemove` при уходе со стека
- * читалки (back / `popBackStack`). Не вызывать `clearLastOpenBookId` из `onDispose` / `DisposableEffect` —
- * при пересборке Compose ключ должен сохраняться (аналог комментария в RN про JS-reload).
+ * [onReaderStackBeforeRemove] вызывать только при реальном уходе с маршрута (back / popBackStack);
+ * из `onDispose`/пересборки Compose — нельзя, иначе ключ потеряется и автооткрытие не сработает.
  */
 object ReaderRouteLifecycle {
-    /** При входе на маршрут читалки — запомнить id для автооткрытия на следующем запуске. */
+    /** При входе на маршрут читалки запоминаем id для автооткрытия на следующем запуске. */
     suspend fun onReaderEntered(
         persistence: LastOpenBookPersistence,
         bookId: String,
@@ -21,12 +19,12 @@ object ReaderRouteLifecycle {
         setLastOpenBookId(persistence, bookId)
     }
 
-    /** Перед снятием экрана читалки со стека навигации — очистить ключ «последняя книга». */
+    /** Перед снятием экрана читалки со стека — очистить ключ «последняя книга». */
     suspend fun onReaderStackBeforeRemove(persistence: LastOpenBookPersistence) {
         clearLastOpenBookId(persistence)
     }
 
-    /** Кнопка «в библиотеку»: обновить счётчик книг и выполнить возврат по стеку. */
+    /** Кнопка «в библиотеку»: обновить счётчик книг и выполнить возврат. */
     suspend fun onBackToLibrary(
         refreshBookCount: suspend () -> Unit,
         goBack: () -> Unit,
@@ -35,7 +33,7 @@ object ReaderRouteLifecycle {
         goBack()
     }
 
-    /** После открытия книги в читалке (`onOpened` в RN). */
+    /** После того как читалка открыла книгу — обновить счётчик. */
     suspend fun onReaderContentOpened(refreshBookCount: suspend () -> Unit) {
         refreshBookCount()
     }

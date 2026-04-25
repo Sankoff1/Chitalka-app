@@ -25,26 +25,17 @@ internal fun Cursor.mapLibraryBookRecordByOrdinal(): LibraryBookRecord {
 }
 
 internal fun Cursor.mapJoinedRowByOrdinal(): LibraryBookWithProgress {
-    val base = mapLibraryBookRecordByOrdinal()
+    val record = mapLibraryBookRecordByOrdinal()
     val lastChapterIndex: Int? = if (isNull(10)) null else max(0, getInt(10))
     val progressFraction: Double? =
-        if (base.totalChapters > 0 && lastChapterIndex != null) {
-            val raw = (lastChapterIndex + 1).toDouble() / base.totalChapters.toDouble()
+        if (record.totalChapters > 0 && lastChapterIndex != null) {
+            val raw = (lastChapterIndex + 1).toDouble() / record.totalChapters.toDouble()
             min(1.0, max(0.0, raw))
         } else {
             null
         }
     return LibraryBookWithProgress(
-        bookId = base.bookId,
-        fileUri = base.fileUri,
-        title = base.title,
-        author = base.author,
-        fileSizeBytes = base.fileSizeBytes,
-        coverUri = base.coverUri,
-        addedAt = base.addedAt,
-        totalChapters = base.totalChapters,
-        isFavorite = base.isFavorite,
-        deletedAt = base.deletedAt,
+        record = record,
         lastChapterIndex = lastChapterIndex,
         progressFraction = progressFraction,
     )
@@ -52,13 +43,13 @@ internal fun Cursor.mapJoinedRowByOrdinal(): LibraryBookWithProgress {
 
 internal fun assertNonEmptyBookId(bookId: String) {
     if (bookId.isBlank()) {
-        throw StorageServiceError("Идентификатор книги (bookId) должен быть непустой строкой.")
+        throw StorageServiceError(STORAGE_ERR_INVALID_BOOK_ID)
     }
 }
 
 internal fun assertValidProgress(progress: ReadingProgress) {
     assertNonEmptyBookId(progress.bookId)
     if (!progress.scrollOffset.isFinite()) {
-        throw StorageServiceError("scrollOffset должен быть конечным числом.")
+        throw StorageServiceError(STORAGE_ERR_INVALID_PROGRESS_OFFSET)
     }
 }

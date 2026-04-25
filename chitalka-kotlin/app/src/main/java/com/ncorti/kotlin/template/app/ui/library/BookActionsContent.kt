@@ -49,26 +49,26 @@ internal fun BookActionsContent(
     val scope = rememberCoroutineScope()
     Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         Text(
-            book.title,
+            book.record.title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            book.author,
+            book.record.author,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 12.dp),
         )
         ActionRow(
-            icon = if (book.isFavorite) Icons.Filled.FavoriteBorder else Icons.Filled.Favorite,
-            label = if (book.isFavorite) {
+            icon = if (book.record.isFavorite) Icons.Filled.FavoriteBorder else Icons.Filled.Favorite,
+            label = if (book.record.isFavorite) {
                 i18n.t(BookActionsSheetSpec.I18nKeys.REMOVE_FROM_FAVORITES)
             } else {
                 i18n.t(BookActionsSheetSpec.I18nKeys.ADD_TO_FAVORITES)
             },
             onClick = {
                 scope.launch {
-                    storage.setBookFavorite(book.bookId, !book.isFavorite)
+                    storage.setBookFavorite(book.record.bookId, !book.record.isFavorite)
                     librarySession.bumpLibraryEpoch()
                     controller.bumpLists()
                     onDismiss()
@@ -81,7 +81,7 @@ internal fun BookActionsContent(
             tint = MaterialTheme.colorScheme.error,
             onClick = {
                 scope.launch {
-                    storage.moveBookToTrash(book.bookId)
+                    storage.moveBookToTrash(book.record.bookId)
                     librarySession.bumpLibraryEpoch()
                     controller.bumpLists()
                     onDismiss()

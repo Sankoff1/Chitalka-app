@@ -12,13 +12,12 @@ private var savedSystemOut: PrintStream? = null
 private var savedSystemErr: PrintStream? = null
 
 /**
- * Перенаправляет [System.out] / [System.err] в [debugLogAppend] (аналог перехвата `console.*` в RN).
- * Идемпотентно: повторный вызов не дублирует обёртки.
+ * Перенаправляет [System.out] / [System.err] в [debugLogAppend]. Идемпотентно.
  *
- * На Android сообщения из `android.util.Log` сюда **не** попадают — только stdout/stderr
+ * Сообщения из [android.util.Log] сюда **не** попадают — только stdout/stderr
  * (например `println`, логи из нативных библиотек в stderr).
  *
- * Вызывайте из `Application.onCreate` при необходимости.
+ * Вызывать из `Application.onCreate`.
  */
 fun installConsoleCapture() {
     if (!installed.compareAndSet(false, true)) {

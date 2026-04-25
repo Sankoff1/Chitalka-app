@@ -34,7 +34,7 @@ private const val EPUB_SUBDIR = "library_epubs"
 private const val COVERS_SUBDIR = "library_covers"
 
 data class ImportEpubOptions(
-    /** Не вызывать опциональные колбэки успеха / дубликата (аналог `suppressSuccessAlert` в RN). */
+    /** Не вызывать колбэки успеха / дубликата (используется при тихом импорте). */
     val suppressSuccessFeedback: Boolean = false,
     val onDuplicateInLibrary: (() -> Unit)? = null,
     val onImportedToLibrary: (() -> Unit)? = null,
@@ -85,10 +85,8 @@ private fun coverExtensionFromUri(uri: String): String {
 }
 
 /**
- * Копирует EPUB в постоянный каталог, извлекает метаданные и обложку через [EpubService],
- * сохраняет запись в [StorageService] (аналог RN `importEpubToLibrary`).
- *
- * Сообщения пользователю RN делал через `Alert` — здесь опциональные колбэки в [ImportEpubOptions].
+ * Копирует EPUB в постоянный каталог приложения, извлекает метаданные и обложку через [EpubService],
+ * сохраняет запись в [StorageService]. Уведомления о результате — через колбэки в [ImportEpubOptions].
  */
 suspend fun importEpubToLibrary(
     context: Context,
@@ -154,29 +152,32 @@ suspend fun importEpubToLibrary(
             var coverUri: String? = null
             var coverSrc = fsMeta.coverFileUri
             if (coverSrc == null) {
-                try {
+                runCatching {
                     svc.open()
-                    val fallback = svc.resolveFallbackCoverFromFirstSpineImage()
+                    svc.resolveFallbackCoverFromFirstSpineImage()
+                }.onSuccess { fallback ->
                     if (fallback != null) {
                         coverSrc = fallback
                         logImportStage("Обложка взята из первой страницы", mapOf("bookId" to bookId))
                     }
-                } catch (_: Exception) {
-                    // OPF разобрать не вышло — пропускаем fallback, оставляем coverUri = null
+                }.onFailure { e ->
+                    ChitalkaMirrorLog.w(LOG_TAG, "fallback cover: open()/resolve упал bookId=$bookId", e)
                 }
             }
-            if (coverSrc != null) {
-                val coverFile = File(fileUriToNativePath(ensureFileUri(coverSrc)))
+            val coverSrcLocal = coverSrc
+            if (coverSrcLocal != null) {
+                val coverFile = File(fileUriToNativePath(ensureFileUri(coverSrcLocal)))
                 if (coverFile.isFile) {
-                    val ext = coverExtensionFromUri(coverSrc)
+                    val ext = coverExtensionFromUri(coverSrcLocal)
                     val destCover = File(coversDir, "${fileBase}_cover$ext")
-                    try {
+                    runCatching {
                         FileInputStream(coverFile).use { input ->
                             FileOutputStream(destCover).use { output -> input.copyTo(output) }
                         }
+                    }.onSuccess {
                         coverUri = ensureFileUri(destCover.absolutePath)
-                    } catch (_: Exception) {
-                        coverUri = null
+                    }.onFailure { e ->
+                        ChitalkaMirrorLog.w(LOG_TAG, "не удалось скопировать обложку bookId=$bookId", e)
                     }
                 }
             }

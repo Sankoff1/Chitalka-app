@@ -22,7 +22,7 @@ class CoreTypesTest {
 
     @Test
     fun libraryBookWithProgress_nullProgressFields() {
-        val row = LibraryBookWithProgress(
+        val record = LibraryBookRecord(
             bookId = "id",
             fileUri = "file:///x.epub",
             title = "T",
@@ -33,12 +33,15 @@ class CoreTypesTest {
             totalChapters = 0,
             isFavorite = false,
             deletedAt = null,
+        )
+        val row = LibraryBookWithProgress(
+            record = record,
             lastChapterIndex = null,
             progressFraction = null,
         )
         assertNull(row.lastChapterIndex)
         assertNull(row.progressFraction)
-        assertNull(row.coverUri)
+        assertNull(row.record.coverUri)
     }
 
     @Test

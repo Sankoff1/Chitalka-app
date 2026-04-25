@@ -3,6 +3,7 @@
 package com.ncorti.kotlin.template.app.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,8 +46,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import com.chitalka.i18n.APP_LOCALES
 import com.chitalka.i18n.AppLocale
@@ -84,20 +90,11 @@ fun ChitalkaSettingsPane(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        i18n.t("settings.darkTheme"),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        when (themeMode) {
-                            ThemeMode.LIGHT -> i18n.t("settings.themeLight")
-                            ThemeMode.DARK -> i18n.t("settings.themeDark")
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Text(
+                    i18n.t("settings.darkTheme"),
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
                 Switch(
                     checked = themeMode == ThemeMode.DARK,
                     onCheckedChange = { dark ->
@@ -166,6 +163,17 @@ private fun LanguageDropdown(
         bottomStart = cornerRadius,
         bottomEnd = cornerRadius,
     )
+    val borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+    val belowAnchorPositionProvider = remember {
+        object : PopupPositionProvider {
+            override fun calculatePosition(
+                anchorBounds: IntRect,
+                windowSize: IntSize,
+                layoutDirection: LayoutDirection,
+                popupContentSize: IntSize,
+            ): IntOffset = IntOffset(anchorBounds.left, anchorBounds.bottom)
+        }
+    }
 
     Box(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -174,6 +182,7 @@ private fun LanguageDropdown(
                 .onSizeChanged { anchorWidthPx = it.width }
                 .clip(triggerShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(width = 1.dp, color = borderColor, shape = triggerShape)
                 .clickable { expanded = !expanded }
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -196,7 +205,7 @@ private fun LanguageDropdown(
         }
         if (expanded) {
             Popup(
-                alignment = Alignment.BottomStart,
+                popupPositionProvider = belowAnchorPositionProvider,
                 onDismissRequest = { expanded = false },
                 properties = PopupProperties(focusable = true),
             ) {
@@ -204,12 +213,13 @@ private fun LanguageDropdown(
                     modifier = Modifier
                         .width(with(density) { anchorWidthPx.toDp() })
                         .clip(menuShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(width = 1.dp, color = borderColor, shape = menuShape),
                 ) {
                     APP_LOCALES.forEachIndexed { index, loc ->
                         if (index > 0) {
                             HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                color = borderColor,
                             )
                         }
                         val isSelected = loc == selected

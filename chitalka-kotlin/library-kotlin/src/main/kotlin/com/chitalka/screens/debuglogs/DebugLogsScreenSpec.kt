@@ -6,9 +6,7 @@ import com.chitalka.i18n.AppLocale
 import com.chitalka.i18n.I18nCatalog
 import java.time.Instant
 
-/**
- * Экран отладочных логов без FlatList / FileSystem / Sharing (`DebugLogsScreen.tsx`).
- */
+/** Контракт экрана отладочных логов: i18n-ключи, экспорт, размеры. */
 object DebugLogsScreenSpec {
 
     object I18nKeys {
@@ -50,12 +48,6 @@ object DebugLogsScreenSpec {
         const val EMPTY_FONT_SP: Int = 15
     }
 
-    object FlatListTuning {
-        const val INITIAL_NUM_TO_RENDER: Int = 24
-        const val MAX_TO_RENDER_PER_BATCH: Int = 32
-        const val WINDOW_SIZE: Int = 10
-    }
-
     /** Между уровнем и текстом в строке списка. */
     const val LINE_LEVEL_MESSAGE_SEPARATOR: String = "  "
 
@@ -83,7 +75,7 @@ object DebugLogsScreenSpec {
     fun exportDialogTitle(locale: AppLocale): String =
         I18nCatalog.tSync(locale, I18nKeys.EXPORT_DIALOG_TITLE)
 
-    /** Как `keyExtractor`: `${item.ts}-${index}`. */
+    /** Стабильный ключ строки в LazyColumn: `ts-index`. */
     fun listItemKey(
         ts: Long,
         index: Int,
@@ -95,16 +87,14 @@ object DebugLogsScreenSpec {
         entryCount: Int,
     ): Boolean = exporting || entryCount == 0
 
-    /**
-     * Имя файла экспорта: `chitalka-logs-${ISO.replace(/[:.]/g, '-')}.txt`.
-     */
+    /** Имя файла экспорта вида `chitalka-logs-<ISO>.txt`, где `:` и `.` заменены на `-`. */
     fun exportFileName(now: Instant = Instant.now()): String {
         val iso = now.toString()
         val safe = iso.replace(":", "-").replace(".", "-")
         return "chitalka-logs-$safe.txt"
     }
 
-    /** Сборка `cacheDir` + имя с завершающим слэшем как в RN. */
+    /** Конкатенация `cacheDir` + имя файла; гарантирует завершающий слэш у каталога. */
     fun exportFilePathInCache(
         cacheDir: String,
         fileName: String,

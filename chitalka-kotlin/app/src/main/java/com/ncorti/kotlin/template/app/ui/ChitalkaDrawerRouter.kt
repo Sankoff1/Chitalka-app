@@ -50,7 +50,7 @@ internal fun ChitalkaDrawerRouter(
                     loadBooks = { storage.listRecentlyReadBooks() },
                     showImportFab = true,
                     onImportClick = onRequestImport,
-                    onOpenBook = { b -> controller.openReader(b.bookId, b.fileUri) },
+                    onOpenBook = { b -> controller.openReader(b.record.bookId, b.record.fileUri) },
                 )
             DrawerScreen.BooksAndDocs ->
                 ChitalkaLibraryListPane(
@@ -63,7 +63,7 @@ internal fun ChitalkaDrawerRouter(
                     loadBooks = { storage.listLibraryBooks() },
                     showImportFab = true,
                     onImportClick = onRequestImport,
-                    onOpenBook = { b -> controller.openReader(b.bookId, b.fileUri) },
+                    onOpenBook = { b -> controller.openReader(b.record.bookId, b.record.fileUri) },
                 )
             DrawerScreen.Favorites ->
                 ChitalkaLibraryListPane(
@@ -76,7 +76,7 @@ internal fun ChitalkaDrawerRouter(
                     loadBooks = { storage.listFavoriteBooks() },
                     showImportFab = false,
                     onImportClick = onRequestImport,
-                    onOpenBook = { b -> controller.openReader(b.bookId, b.fileUri) },
+                    onOpenBook = { b -> controller.openReader(b.record.bookId, b.record.fileUri) },
                 )
             DrawerScreen.Cart ->
                 ChitalkaTrashPane(

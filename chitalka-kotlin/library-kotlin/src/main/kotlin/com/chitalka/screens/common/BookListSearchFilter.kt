@@ -3,10 +3,10 @@ package com.chitalka.screens.common
 import com.chitalka.core.types.LibraryBookWithProgress
 import java.util.Locale
 
-/** Общая фильтрация списков книг по строке поиска (`visibleBooks` в экранах библиотеки RN). */
+/** Общая фильтрация списков книг по строке поиска. */
 object BookListSearchFilter {
 
-    /** Как `searchQuery.trim().toLocaleLowerCase()` в RN. */
+    /** Trim + lowercase по системной локали. */
     fun normalizeBookListSearchQuery(raw: String): String =
         raw.trim().lowercase(Locale.getDefault())
 
@@ -19,8 +19,8 @@ object BookListSearchFilter {
         }
         val locale = Locale.getDefault()
         return books.filter { b ->
-            b.title.lowercase(locale).contains(normalizedQuery) ||
-                b.author.lowercase(locale).contains(normalizedQuery)
+            b.record.title.lowercase(locale).contains(normalizedQuery) ||
+                b.record.author.lowercase(locale).contains(normalizedQuery)
         }
     }
 }

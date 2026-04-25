@@ -4,12 +4,10 @@ import com.chitalka.i18n.AppLocale
 import com.chitalka.i18n.I18nCatalog
 import com.chitalka.navigation.DrawerScreen
 
-/**
- * Шапка drawer без SafeArea / иконок (`AppTopBar.tsx`).
- */
+/** Поведение верхней панели: показ поиска, кнопок drawer, авто-закрытие поиска при смене экрана. */
 object AppTopBarSpec {
 
-    /** Имена маршрутов, где поиск по библиотеке скрыт (`NON_SEARCHABLE_ROUTES` в RN). */
+    /** Маршруты, где поиск по библиотеке скрыт. */
     val nonSearchableRouteNames: Set<String> =
         setOf(
             DrawerScreen.Settings.routeName,
@@ -19,7 +17,7 @@ object AppTopBarSpec {
     fun isDrawerRouteSearchable(routeName: String): Boolean =
         routeName !in nonSearchableRouteNames
 
-    /** Состояние из `useLibrary`, влияющее на кнопки поиска. */
+    /** Состояние библиотеки, влияющее на видимость кнопок поиска. */
     data class SearchChromeState(
         val bookCount: Int,
         val isSearchOpen: Boolean,
@@ -44,9 +42,7 @@ object AppTopBarSpec {
     ): Boolean =
         shouldShowSearchInput(routeName, state) && state.searchQuery.isNotEmpty()
 
-    /**
-     * При уходе на экран без поиска нужно вызвать `closeSearch` (эффект в RN).
-     */
+    /** При уходе на экран без поиска нужно автоматически закрыть поле. */
     fun shouldAutoCloseSearchForRoute(
         routeName: String,
         isSearchOpen: Boolean,
@@ -75,18 +71,8 @@ object AppTopBarSpec {
         const val BOTTOM_BORDER_ALPHA: Float = 0.12f
     }
 
-    /** Задержка фокуса поля поиска (`setTimeout(..., 50)` в RN). */
+    /** Задержка фокуса поля поиска после открытия. */
     const val SEARCH_INPUT_FOCUS_DELAY_MS: Long = 50L
-
-    /** К `colors.topBarText` в RN добавляется `99` для placeholder. */
-    const val PLACEHOLDER_TEXT_ALPHA_SUFFIX: String = "99"
-
-    object MaterialIcons {
-        const val MENU = "menu"
-        const val ARROW_BACK = "arrow-back"
-        const val SEARCH = "search"
-        const val CLOSE = "close"
-    }
 
     data class Strings(
         val a11yOpenMenu: String,

@@ -94,7 +94,7 @@ fun ChitalkaTrashPane(
                             val ok =
                                 runCatching {
                                     deleteLibraryFilesQuiet(book)
-                                    storage.purgeBook(book.bookId)
+                                    storage.purgeBook(book.record.bookId)
                                 }.isSuccess
                             if (ok) {
                                 librarySession.bumpLibraryEpoch()
@@ -129,13 +129,13 @@ fun ChitalkaTrashPane(
                     .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            items(visibleBooks, key = { it.bookId }) { book ->
+            items(visibleBooks, key = { it.record.bookId }) { book ->
                 TrashRowCard(
                     book = book,
                     locale = locale,
                     onRestore = {
                         scope.launch {
-                            storage.restoreBookFromTrash(book.bookId)
+                            storage.restoreBookFromTrash(book.record.bookId)
                             librarySession.bumpLibraryEpoch()
                             controller.bumpLists()
                         }
@@ -193,17 +193,17 @@ private fun TrashRowCard(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    book.title,
+                    book.record.title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    book.author,
+                    book.record.author,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    TrashScreenSpec.formatFileSizeMbLine(book.fileSizeBytes, locale),
+                    TrashScreenSpec.formatFileSizeMbLine(book.record.fileSizeBytes, locale),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -228,8 +228,8 @@ private fun TrashRowCard(
 
 private suspend fun deleteLibraryFilesQuiet(book: LibraryBookWithProgress) {
     withContext(Dispatchers.IO) {
-        tryDeleteFileUri(book.fileUri)
-        tryDeleteFileUri(book.coverUri)
+        tryDeleteFileUri(book.record.fileUri)
+        tryDeleteFileUri(book.record.coverUri)
     }
 }
 

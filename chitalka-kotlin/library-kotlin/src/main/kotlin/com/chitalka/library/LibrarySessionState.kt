@@ -1,7 +1,7 @@
 package com.chitalka.library
 
 /**
- * Изменяемое состояние уровня приложения из `LibraryContext.tsx` без React/Alert/picker.
+ * Изменяемое состояние библиотеки на уровне приложения (счётчики, поиск, welcome-флаги).
  * Доступ с одного потока (обычно main); синхронизацию для фоновых вызовов обеспечивает вызывающий.
  */
 @Suppress("TooManyFunctions")
@@ -34,10 +34,7 @@ class LibrarySessionState(
     var welcomePickerHint: String? = null
         private set
 
-    /**
-     * На Android системный picker не должен перекрываться модалкой —
-     * временно скрываем welcome (аналог `suppressWelcomeForPicker` в RN).
-     */
+    /** Системный picker файлов не должен перекрываться welcome-модалкой — временно её скрываем. */
     var suppressWelcomeForPicker: Boolean = false
         private set
 
@@ -79,7 +76,7 @@ class LibrarySessionState(
         suppressWelcomeForPicker = suppress
     }
 
-    /** Видимость `FirstLaunchModal` — та же формула, что `welcomeModalVisible` в RN. */
+    /** Видимость welcome-модалки первого запуска. */
     fun isFirstLaunchWelcomeVisible(): Boolean =
         storageReady && bookCount == 0 && !welcomeDismissedThisSession && !suppressWelcomeForPicker
 }

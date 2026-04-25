@@ -1,6 +1,6 @@
 package com.chitalka.ui.readerview
 
-/** Направление смены главы из страницы (`ReaderPageDirection` в `ReaderView.tsx`). */
+/** Направление перелистывания, приходящее из WebView через мост. */
 enum class ReaderPageDirection(
     val wire: String,
 ) {

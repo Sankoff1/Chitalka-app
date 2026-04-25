@@ -68,19 +68,19 @@ internal fun BookRowCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             BookCover(
-                coverUri = book.coverUri,
+                coverUri = book.record.coverUri,
                 coverW = coverW,
                 coverH = coverH,
             )
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        book.title,
+                        book.record.title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f),
                     )
-                    if (book.isFavorite) {
+                    if (book.record.isFavorite) {
                         Icon(
                             Icons.Filled.Favorite,
                             contentDescription = null,
@@ -90,7 +90,7 @@ internal fun BookRowCard(
                     }
                 }
                 Text(
-                    book.author,
+                    book.record.author,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
