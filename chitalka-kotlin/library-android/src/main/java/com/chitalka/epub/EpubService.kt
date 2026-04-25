@@ -165,38 +165,48 @@ class EpubService(
                 throw EpubServiceError("Не удалось прочитать главу: $chapterUri", err)
             }
 
-        val imgTagRe = Regex("""<img\b[^>]*>""", RegexOption.IGNORE_CASE)
-        val replacements = mutableListOf<Triple<Int, Int, String>>()
-        var rewritten = 0
-        for (match in imgTagRe.findAll(html)) {
-            val fullTag = match.value
-            val srcMatch =
-                Regex("""\bsrc\s*=\s*(["'])([\s\S]*?)\1""", RegexOption.IGNORE_CASE).find(fullTag)
-                    ?: continue
-            val quote = srcMatch.groupValues[1]
-            val srcVal = srcMatch.groupValues[2].trim()
-            val newTag =
-                rewriteLocalImageSrcInTag(
-                    fullTag = fullTag,
-                    srcAttrFull = srcMatch.value,
-                    quote = quote,
-                    srcVal = srcVal,
-                    chapterUri = chapterUri,
-                    unpackedRootUri = root,
-                )
-            if (newTag != fullTag) rewritten++
-            replacements.add(Triple(match.range.first, match.range.last + 1, newTag))
+        val matches = IMG_TAG_REGEX.findAll(html).toList()
+        if (matches.isEmpty()) {
+            ChitalkaMirrorLog.d(
+                EPUB_OPEN_LOG,
+                "prepareChapter: chapter=$chapterUri imgTagsFound=0 rewritten=0",
+            )
+            return injectReaderViewportAndReflowCss(html)
         }
+
+        val out = StringBuilder(html.length + matches.size * IMG_REWRITE_HEADROOM)
+        var cursor = 0
+        var rewritten = 0
+        for (match in matches) {
+            val fullTag = match.value
+            val srcMatch = SRC_ATTR_REGEX.find(fullTag)
+            val newTag =
+                if (srcMatch == null) {
+                    fullTag
+                } else {
+                    val quote = srcMatch.groupValues[1]
+                    val srcVal = srcMatch.groupValues[2].trim()
+                    rewriteLocalImageSrcInTag(
+                        fullTag = fullTag,
+                        srcAttrFull = srcMatch.value,
+                        quote = quote,
+                        srcVal = srcVal,
+                        chapterUri = chapterUri,
+                        unpackedRootUri = root,
+                    )
+                }
+            if (newTag !== fullTag && newTag != fullTag) rewritten++
+            out.append(html, cursor, match.range.first)
+            out.append(newTag)
+            cursor = match.range.last + 1
+        }
+        out.append(html, cursor, html.length)
+
         ChitalkaMirrorLog.d(
             EPUB_OPEN_LOG,
-            "prepareChapter: chapter=$chapterUri imgTagsFound=${replacements.size} rewritten=$rewritten",
+            "prepareChapter: chapter=$chapterUri imgTagsFound=${matches.size} rewritten=$rewritten",
         )
-        replacements.sortByDescending { it.first }
-        var out = html
-        for ((start, end, text) in replacements) {
-            out = out.substring(0, start) + text + out.substring(end)
-        }
-        return injectReaderViewportAndReflowCss(out)
+        return injectReaderViewportAndReflowCss(out.toString())
     }
 
     @Suppress("LongParameterList")
@@ -211,7 +221,7 @@ class EpubService(
         if (srcVal.isEmpty() || srcVal.startsWith("data:")) {
             return fullTag
         }
-        if (Regex("^https?://", RegexOption.IGNORE_CASE).containsMatchIn(srcVal)) {
+        if (HTTP_URL_REGEX.containsMatchIn(srcVal)) {
             return fullTag
         }
         val assetUri = resolveChapterAssetUri(unpackedRootUri, chapterUri, srcVal)
@@ -276,6 +286,11 @@ class EpubService(
         unpackedRootUri = null
     }
 }
+
+private val IMG_TAG_REGEX = Regex("""<img\b[^>]*>""", RegexOption.IGNORE_CASE)
+private val SRC_ATTR_REGEX = Regex("""\bsrc\s*=\s*(["'])([\s\S]*?)\1""", RegexOption.IGNORE_CASE)
+private val HTTP_URL_REGEX = Regex("^https?://", RegexOption.IGNORE_CASE)
+private const val IMG_REWRITE_HEADROOM = 32
 
 private fun logEpubOpen(step: String, detail: String? = null) {
     if (detail != null) {

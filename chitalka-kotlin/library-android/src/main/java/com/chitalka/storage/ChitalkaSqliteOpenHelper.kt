@@ -10,6 +10,20 @@ internal class ChitalkaSqliteOpenHelper(
     context: Context,
 ) : SQLiteOpenHelper(context.applicationContext, DATABASE_NAME, null, DB_VERSION) {
 
+    override fun onConfigure(db: SQLiteDatabase) {
+        super.onConfigure(db)
+        if (!db.isReadOnly) {
+            db.enableWriteAheadLogging()
+            try {
+                db.execSQL("PRAGMA synchronous=NORMAL;")
+                db.execSQL("PRAGMA temp_store=MEMORY;")
+                db.execSQL("PRAGMA foreign_keys=ON;")
+            } catch (e: SQLException) {
+                ChitalkaMirrorLog.e(TAG, "pragma tuning failed", e)
+            }
+        }
+    }
+
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
             """

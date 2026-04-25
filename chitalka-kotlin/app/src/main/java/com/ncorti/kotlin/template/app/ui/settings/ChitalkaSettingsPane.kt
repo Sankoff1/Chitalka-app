@@ -1,25 +1,58 @@
+@file:Suppress("LongMethod")
+
 package com.ncorti.kotlin.template.app.ui.settings
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import com.chitalka.i18n.APP_LOCALES
 import com.chitalka.i18n.AppLocale
 import com.chitalka.i18n.I18nUiState
+import com.chitalka.i18n.persistLocale
 import com.chitalka.library.LastOpenBookPersistence
 import com.chitalka.theme.ThemeMode
-import com.chitalka.i18n.persistLocale
 import com.chitalka.theme.persistThemeMode
 import com.ncorti.kotlin.template.app.BuildConfig
 import kotlinx.coroutines.launch
@@ -35,49 +68,231 @@ fun ChitalkaSettingsPane(
     onThemeModeChange: (ThemeMode) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    Column(Modifier.padding(16.dp)) {
-        Text(i18n.t("settings.themeSection"), style = MaterialTheme.typography.titleMedium)
-        Row(
-            Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        SettingsCard(
+            icon = Icons.Filled.Build,
+            title = i18n.t("settings.themeSection"),
         ) {
-            Text(i18n.t("settings.darkTheme"), modifier = Modifier.weight(1f))
-            Switch(
-                checked = themeMode == ThemeMode.DARK,
-                onCheckedChange = { dark ->
-                    val next = if (dark) ThemeMode.DARK else ThemeMode.LIGHT
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        i18n.t("settings.darkTheme"),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        when (themeMode) {
+                            ThemeMode.LIGHT -> i18n.t("settings.themeLight")
+                            ThemeMode.DARK -> i18n.t("settings.themeDark")
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = themeMode == ThemeMode.DARK,
+                    onCheckedChange = { dark ->
+                        val next = if (dark) ThemeMode.DARK else ThemeMode.LIGHT
+                        scope.launch {
+                            persistThemeMode(persistence, next)
+                            onThemeModeChange(next)
+                        }
+                    },
+                )
+            }
+        }
+
+        SettingsCard(
+            icon = Icons.Filled.Settings,
+            title = i18n.t("settings.languageSection"),
+        ) {
+            LanguageDropdown(
+                i18n = i18n,
+                selected = locale,
+                onSelect = { picked ->
                     scope.launch {
-                        persistThemeMode(persistence, next)
-                        onThemeModeChange(next)
+                        persistLocale(persistence, picked)
+                        onLocaleChange(picked)
                     }
                 },
             )
         }
-        Text(
-            i18n.t("settings.languageSection"),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(top = 24.dp),
+
+        SettingsCard(
+            icon = Icons.Filled.Info,
+            title = i18n.t("settings.versionLabel"),
+        ) {
+            Text(
+                BuildConfig.VERSION_NAME,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LanguageDropdown(
+    i18n: I18nUiState,
+    selected: AppLocale,
+    onSelect: (AppLocale) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var anchorWidthPx by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
+    val cornerRadius = 12.dp
+    val triggerShape = if (expanded) {
+        RoundedCornerShape(
+            topStart = cornerRadius,
+            topEnd = cornerRadius,
+            bottomStart = 0.dp,
+            bottomEnd = 0.dp,
         )
-        APP_LOCALES.forEach { loc ->
-            Button(
-                onClick = {
-                    scope.launch {
-                        persistLocale(persistence, loc)
-                        onLocaleChange(loc)
-                    }
+    } else {
+        RoundedCornerShape(cornerRadius)
+    }
+    val menuShape = RoundedCornerShape(
+        topStart = 0.dp,
+        topEnd = 0.dp,
+        bottomStart = cornerRadius,
+        bottomEnd = cornerRadius,
+    )
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .onSizeChanged { anchorWidthPx = it.width }
+                .clip(triggerShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clickable { expanded = !expanded }
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                localeDisplayName(i18n, selected),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Icon(
+                imageVector = if (expanded) {
+                    Icons.Filled.KeyboardArrowUp
+                } else {
+                    Icons.Filled.KeyboardArrowDown
                 },
-                modifier = Modifier.padding(top = 8.dp),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (expanded) {
+            Popup(
+                alignment = Alignment.BottomStart,
+                onDismissRequest = { expanded = false },
+                properties = PopupProperties(focusable = true),
             ) {
-                Text(
-                    loc.name,
-                    fontWeight = if (loc == locale) FontWeight.Bold else FontWeight.Normal,
-                )
+                Column(
+                    modifier = Modifier
+                        .width(with(density) { anchorWidthPx.toDp() })
+                        .clip(menuShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                ) {
+                    APP_LOCALES.forEachIndexed { index, loc ->
+                        if (index > 0) {
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                            )
+                        }
+                        val isSelected = loc == selected
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .then(
+                                    if (isSelected) {
+                                        Modifier.background(
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                        )
+                                    } else {
+                                        Modifier
+                                    },
+                                )
+                                .clickable {
+                                    expanded = false
+                                    if (loc != selected) onSelect(loc)
+                                }
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                localeDisplayName(i18n, loc),
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (isSelected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
+                            )
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Filled.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
-        Text(
-            "${i18n.t("settings.versionLabel")} ${BuildConfig.VERSION_NAME}",
-            modifier = Modifier.padding(top = 32.dp),
-            style = MaterialTheme.typography.bodyMedium,
-        )
+    }
+}
+
+private fun localeDisplayName(i18n: I18nUiState, loc: AppLocale): String =
+    when (loc) {
+        AppLocale.RU -> i18n.t("settings.languageRu")
+        AppLocale.EN -> i18n.t("settings.languageEn")
+    }
+
+@Composable
+private fun SettingsCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    content: @Composable () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.size(12.dp))
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            content()
+        }
     }
 }

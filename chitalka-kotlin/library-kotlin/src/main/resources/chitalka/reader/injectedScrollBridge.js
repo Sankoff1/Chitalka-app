@@ -16,9 +16,10 @@
     var startX = 0, startY = 0, startT = 0;
     var TAP_MAX_DELTA = 10;
     var TAP_MAX_TIME = 400;
-    var SWIPE_MIN_DX = 50;
-    var SWIPE_MAX_DY = 35;
-    var SWIPE_MAX_TIME = 600;
+    var SWIPE_MIN_DX = 30;
+    var SWIPE_MAX_DY = 80;
+    var SWIPE_MAX_TIME = 1000;
+    var SWIPE_DX_DY_RATIO = 1.2;
     var INTERACTIVE_SELECTOR = 'a,button,input,select,textarea,label,[role="link"],[role="button"]';
 
     function postPage(dir) {
@@ -45,7 +46,9 @@
       var dt = Date.now() - startT;
       startT = 0;
       if (window.getSelection && String(window.getSelection()).length > 0) return;
-      if (dt <= SWIPE_MAX_TIME && Math.abs(dx) >= SWIPE_MIN_DX && Math.abs(dy) <= SWIPE_MAX_DY) {
+      var adx = Math.abs(dx), ady = Math.abs(dy);
+      var horizontalDominant = adx > ady * SWIPE_DX_DY_RATIO;
+      if (dt <= SWIPE_MAX_TIME && adx >= SWIPE_MIN_DX && (ady <= SWIPE_MAX_DY || horizontalDominant)) {
         postPage(dx < 0 ? 'next' : 'prev');
         return;
       }

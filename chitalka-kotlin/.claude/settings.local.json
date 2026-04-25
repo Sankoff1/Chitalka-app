@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Skill(update-config)",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(python scripts/count_source_lines.py)"
     ]
   },
   "hooks": {
