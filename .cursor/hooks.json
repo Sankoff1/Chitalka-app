@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeSubmitPrompt": [
+      {
+        "command": "python .cursor/hooks/user_prompt_memory_bot_workflow.py"
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "python .cursor/hooks/enforce_memory_bot_workflow.py"
+      }
+    ],
+    "stop": [
+      {
+        "command": "python .cursor/hooks/stop_followup_update_docs.py",
+        "loop_limit": 1
+      }
+    ]
+  }
+}
