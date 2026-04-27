@@ -297,3 +297,13 @@ fabric.properties
 !/gradle/wrapper/gradle-wrapper.jar
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,linux,gradle,windows,android,androidstudio,java,kotlin
+
+# Mirror copy noise (react-project-copy)
+react-project-copy/node_modules/
+react-project-copy/.expo/
+react-project-copy/.cursor/hooks/__pycache__/
+react-project-copy/android/.gradle/
+react-project-copy/android/app/.cxx/
+react-project-copy/android/build/
+react-project-copy/android/app/build/
+react-project-copy/.idea/
