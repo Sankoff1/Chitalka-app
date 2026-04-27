@@ -66,12 +66,6 @@ object BookActionsSheetSpec {
     /** Цвет деструктивного действия. */
     const val DESTRUCTIVE_ACTION_HEX: String = "#D93A3A"
 
-    object MaterialIcons {
-        const val FAVORITE = "favorite"
-        const val FAVORITE_BORDER = "favorite-border"
-        const val DELETE_OUTLINE = "delete-outline"
-    }
-
     /** Заглушка обложки (эмодзи книги). */
     const val COVER_PLACEHOLDER_GLYPH: String = "\uD83D\uDCD6"
 
@@ -83,13 +77,6 @@ object BookActionsSheetSpec {
 
     fun moveToTrashLabel(locale: AppLocale): String =
         I18nCatalog.tSync(locale, I18nKeys.MOVE_TO_TRASH)
-
-    fun favoriteActionIconName(isFavorite: Boolean): String =
-        if (isFavorite) {
-            MaterialIcons.FAVORITE
-        } else {
-            MaterialIcons.FAVORITE_BORDER
-        }
 
     fun favoriteActionLabel(
         locale: AppLocale,

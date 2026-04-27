@@ -90,6 +90,14 @@ class ReaderScreenSpecTest {
     }
 
     @Test
+    fun normalizeSavedScrollRangeMax() {
+        assertEquals(0.0, ReaderScreenSpec.normalizeSavedScrollRangeMax(null), 0.0)
+        assertEquals(0.0, ReaderScreenSpec.normalizeSavedScrollRangeMax(Double.NaN), 0.0)
+        assertEquals(0.0, ReaderScreenSpec.normalizeSavedScrollRangeMax(-1.0), 0.0)
+        assertEquals(400.0, ReaderScreenSpec.normalizeSavedScrollRangeMax(400.0), 0.0)
+    }
+
+    @Test
     fun layerHtmlForWebView_emptyUsesConstant() {
         assertEquals(
             ReaderScreenSpec.EMPTY_READER_HTML,
@@ -210,7 +218,7 @@ class ReaderScreenSpecTest {
     }
 
     @Test
-    fun timing_matchesReaderScreen() {
+    fun timing_constantsAreStable() {
         assertEquals(500L, ReaderScreenSpec.Timing.SCROLL_PERSIST_DEBOUNCE_MS)
         assertEquals(400L, ReaderScreenSpec.Timing.PENDING_LAYER_READY_TIMEOUT_MS)
         assertEquals(380L, ReaderScreenSpec.Timing.CHAPTER_TRANSITION_DURATION_MS)

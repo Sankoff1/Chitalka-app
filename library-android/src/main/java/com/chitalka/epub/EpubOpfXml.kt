@@ -19,11 +19,10 @@ internal fun escapeHtmlAttrValue(raw: String, quote: String): String {
 
 internal fun decodeBasicXmlEntities(s: String): String {
     return s.replace(Regex("&#x([0-9a-fA-F]+);")) { m ->
-        val h = m.groupValues[1]
-        h.toInt(16).toChar().toString()
+        // Слишком длинные значения (overflow Int) оставляем как было — это не валидная сущность.
+        m.groupValues[1].toIntOrNull(16)?.toChar()?.toString() ?: m.value
     }.replace(Regex("&#(\\d+);")) { m ->
-        val d = m.groupValues[1]
-        d.toInt(10).toChar().toString()
+        m.groupValues[1].toIntOrNull(10)?.toChar()?.toString() ?: m.value
     }.replace("&lt;", "<")
         .replace("&gt;", ">")
         .replace("&apos;", "'")
@@ -187,12 +186,14 @@ internal fun buildSpineFromOpfXml(opfXml: String): List<EpubSpineItem> {
 internal fun resolveChapterAssetUri(unpackedRootUri: String, chapterFileUri: String, src: String): String {
     val pathPart = src.trim().split('#').firstOrNull()?.trim().orEmpty()
     if (pathPart.isEmpty()) return ""
+    // best-effort: невалидное %-кодирование — оставляем сырую строку, дальше File её всё равно проверит.
     val decoded = try {
         URLDecoder.decode(pathPart, Charsets.UTF_8.name())
     } catch (_: Exception) {
         pathPart
     }
     val cleanPath = decoded.replace('\\', '/')
+    // best-effort: любой сбой при разборе пути → пустая строка, вызывающий покажет битый src.
     return try {
         val baseDir =
             if (cleanPath.startsWith("/")) {

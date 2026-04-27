@@ -14,6 +14,7 @@ fun storageErrorMessage(locale: AppLocale, code: String): String {
             STORAGE_ERR_GENERIC -> "storage.errors.generic"
             STORAGE_ERR_INVALID_BOOK_ID -> "storage.errors.invalidBookId"
             STORAGE_ERR_INVALID_PROGRESS_OFFSET -> "storage.errors.invalidProgressOffset"
+            STORAGE_ERR_INVALID_PROGRESS_SCROLL_RANGE -> "storage.errors.invalidProgressScrollRange"
             else -> return code
         }
     return I18nCatalog.tSync(locale, key)

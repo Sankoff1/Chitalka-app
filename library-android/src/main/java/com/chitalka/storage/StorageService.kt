@@ -57,6 +57,7 @@ class StorageService internal constructor(
                     put("book_id", progress.bookId)
                     put("last_chapter_index", progress.lastChapterIndex)
                     put("scroll_offset", progress.scrollOffset)
+                    put("scroll_range_max", progress.scrollRangeMax)
                     put("last_read_timestamp", progress.lastReadTimestamp)
                 }
             db.insertWithOnConflict(
@@ -77,6 +78,7 @@ class StorageService internal constructor(
                   book_id,
                   last_chapter_index,
                   scroll_offset,
+                  scroll_range_max,
                   last_read_timestamp
                 FROM ${ChitalkaSqliteOpenHelper.TABLE_READING_PROGRESS}
                 WHERE book_id = ?
@@ -91,7 +93,8 @@ class StorageService internal constructor(
                         bookId = c.getString(0),
                         lastChapterIndex = c.getInt(1),
                         scrollOffset = c.getDouble(2),
-                        lastReadTimestamp = c.getLong(3),
+                        scrollRangeMax = c.getDouble(3),
+                        lastReadTimestamp = c.getLong(4),
                     )
                 }
             }

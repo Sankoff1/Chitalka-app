@@ -9,14 +9,6 @@ import org.junit.Test
 class SettingsScreenSpecTest {
 
     @Test
-    fun resolveAppVersion_prefersExpoThenNative() {
-        assertEquals("1.2.3", SettingsScreenSpec.resolveAppVersion("1.2.3", "9.9.9"))
-        assertEquals("9.9.9", SettingsScreenSpec.resolveAppVersion(null, "9.9.9"))
-        assertEquals("9.9.9", SettingsScreenSpec.resolveAppVersion("  ", "9.9.9"))
-        assertEquals(SettingsScreenSpec.APP_VERSION_FALLBACK, SettingsScreenSpec.resolveAppVersion(null, null))
-    }
-
-    @Test
     fun shouldOpenLanguageMenuAbove() {
         val anchorY = 400f
         val anchorH = 48f
@@ -44,7 +36,7 @@ class SettingsScreenSpecTest {
         val ru = AppLocale.RU
         assertEquals("Тема оформления", SettingsScreenSpec.themeSectionLabel(ru))
         assertEquals("Тёмная тема", SettingsScreenSpec.darkThemeLabel(ru))
-        assertEquals("Язык интерфейса", SettingsScreenSpec.languageSectionLabel(ru))
+        assertEquals("Язык интерфейса (Language)", SettingsScreenSpec.languageSectionLabel(ru))
         assertEquals("Версия приложения", SettingsScreenSpec.versionLabel(ru))
     }
 }

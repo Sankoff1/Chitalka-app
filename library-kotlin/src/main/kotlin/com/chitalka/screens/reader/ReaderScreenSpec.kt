@@ -144,4 +144,9 @@ object ReaderScreenSpec {
         zeroBasedChapterIndex: Int,
         spineLength: Int,
     ): String = "${zeroBasedChapterIndex + 1}/$spineLength"
+
+    fun normalizeSavedScrollRangeMax(raw: Double?): Double {
+        val v = raw ?: return 0.0
+        return if (v.isFinite() && v >= 0.0) v else 0.0
+    }
 }

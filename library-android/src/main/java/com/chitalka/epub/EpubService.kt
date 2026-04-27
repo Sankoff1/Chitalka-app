@@ -144,98 +144,17 @@ class EpubService(
         return ensureFileUri(joinUnderUnpackedRoot(opfDirFileUrl, item.href))
     }
 
-    suspend fun prepareChapter(htmlPath: String): String =
-        try {
+    suspend fun prepareChapter(htmlPath: String): String {
+        val root = unpackedRootUri ?: throw EpubServiceError("Сначала вызовите open() для распаковки и разбора книги.")
+        return try {
             withTimeout(TIMEOUT_PREPARE_CHAPTER_MS, EPUB_ERR_TIMEOUT_PREPARE_CHAPTER) {
                 withContext(Dispatchers.IO) {
-                    prepareChapterBody(htmlPath)
+                    prepareChapterBodyForReader(root, htmlPath)
                 }
             }
         } catch (e: WithTimeoutException) {
             throw EpubServiceError(EPUB_ERR_TIMEOUT_PREPARE_CHAPTER, e)
         }
-
-    private fun prepareChapterBody(htmlPath: String): String {
-        val root = unpackedRootUri ?: throw EpubServiceError("Сначала вызовите open() для распаковки и разбора книги.")
-        val chapterUri = ensureFileUri(htmlPath)
-        val html =
-            try {
-                readUtf8FromFileUri(chapterUri)
-            } catch (err: Exception) {
-                throw EpubServiceError("Не удалось прочитать главу: $chapterUri", err)
-            }
-
-        val matches = IMG_TAG_REGEX.findAll(html).toList()
-        if (matches.isEmpty()) {
-            ChitalkaMirrorLog.d(
-                EPUB_OPEN_LOG,
-                "prepareChapter: chapter=$chapterUri imgTagsFound=0 rewritten=0",
-            )
-            return injectReaderViewportAndReflowCss(html)
-        }
-
-        val out = StringBuilder(html.length + matches.size * IMG_REWRITE_HEADROOM)
-        var cursor = 0
-        var rewritten = 0
-        for (match in matches) {
-            val fullTag = match.value
-            val srcMatch = SRC_ATTR_REGEX.find(fullTag)
-            val newTag =
-                if (srcMatch == null) {
-                    fullTag
-                } else {
-                    val quote = srcMatch.groupValues[1]
-                    val srcVal = srcMatch.groupValues[2].trim()
-                    rewriteLocalImageSrcInTag(
-                        fullTag = fullTag,
-                        srcAttrFull = srcMatch.value,
-                        quote = quote,
-                        srcVal = srcVal,
-                        chapterUri = chapterUri,
-                        unpackedRootUri = root,
-                    )
-                }
-            if (newTag !== fullTag && newTag != fullTag) rewritten++
-            out.append(html, cursor, match.range.first)
-            out.append(newTag)
-            cursor = match.range.last + 1
-        }
-        out.append(html, cursor, html.length)
-
-        ChitalkaMirrorLog.d(
-            EPUB_OPEN_LOG,
-            "prepareChapter: chapter=$chapterUri imgTagsFound=${matches.size} rewritten=$rewritten",
-        )
-        return injectReaderViewportAndReflowCss(out.toString())
-    }
-
-    @Suppress("LongParameterList")
-    private fun rewriteLocalImageSrcInTag(
-        fullTag: String,
-        srcAttrFull: String,
-        quote: String,
-        srcVal: String,
-        chapterUri: String,
-        unpackedRootUri: String,
-    ): String {
-        if (srcVal.isEmpty() || srcVal.startsWith("data:")) {
-            return fullTag
-        }
-        if (HTTP_URL_REGEX.containsMatchIn(srcVal)) {
-            return fullTag
-        }
-        val assetUri = resolveChapterAssetUri(unpackedRootUri, chapterUri, srcVal)
-        if (!assetUri.startsWith("file://")) {
-            ChitalkaMirrorLog.w(EPUB_OPEN_LOG, "img src не удалось разрешить: src=$srcVal chapter=$chapterUri")
-            return fullTag
-        }
-        if (!fileExistsAsFile(assetUri)) {
-            ChitalkaMirrorLog.w(EPUB_OPEN_LOG, "img файл не найден: src=$srcVal resolved=$assetUri")
-            return fullTag
-        }
-        val escaped = escapeHtmlAttrValue(assetUri, quote)
-        val newSrcAttr = "src=$quote$escaped$quote"
-        return fullTag.replace(srcAttrFull, newSrcAttr)
     }
 
     suspend fun getMetadata(): Pair<String, String> {
@@ -289,14 +208,17 @@ class EpubService(
     }
 }
 
-private val IMG_TAG_REGEX = Regex("""<img\b[^>]*>""", RegexOption.IGNORE_CASE)
-private val SRC_ATTR_REGEX = Regex("""\bsrc\s*=\s*(["'])([\s\S]*?)\1""", RegexOption.IGNORE_CASE)
-private val HTTP_URL_REGEX = Regex("^https?://", RegexOption.IGNORE_CASE)
-private const val IMG_REWRITE_HEADROOM = 32
+// Logcat обрезает строки около 4 КБ, но детали тут — обычно URI: 900 символов
+// хватает на самые длинные пути и не засоряет ленту.
+private const val EPUB_LOG_DETAIL_MAX_CHARS = 900
 
 private fun logEpubOpen(step: String, detail: String? = null) {
     if (detail != null) {
-        val d = if (detail.length > 900) detail.take(900) + "…" else detail
+        val d = if (detail.length > EPUB_LOG_DETAIL_MAX_CHARS) {
+            detail.take(EPUB_LOG_DETAIL_MAX_CHARS) + "…"
+        } else {
+            detail
+        }
         ChitalkaMirrorLog.d(EPUB_OPEN_LOG, "$step $d")
     } else {
         ChitalkaMirrorLog.d(EPUB_OPEN_LOG, step)

@@ -2,8 +2,11 @@
   try {
     function postY() {
       var y = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      var h = document.documentElement.scrollHeight || document.body.scrollHeight || 0;
+      var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+      var yMax = Math.max(0, h - vh);
       if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ t: 'scroll', y: y }));
+        window.ReactNativeWebView.postMessage(JSON.stringify({ t: 'scroll', y: y, yMax: yMax }));
       }
     }
     var timer;
@@ -20,6 +23,8 @@
     var SWIPE_MAX_DY = 80;
     var SWIPE_MAX_TIME = 1000;
     var SWIPE_DX_DY_RATIO = 1.2;
+    var TAP_PREV_ZONE_END = 1 / 3;
+    var TAP_NEXT_ZONE_START = 2 / 3;
     var INTERACTIVE_SELECTOR = 'a,button,input,select,textarea,label,[role="link"],[role="button"]';
 
     function postPage(dir) {
@@ -56,13 +61,15 @@
         if (e.target && e.target.closest && e.target.closest(INTERACTIVE_SELECTOR)) return;
         var w = window.innerWidth || document.documentElement.clientWidth || 1;
         var frac = p.clientX / w;
-        if (frac <= 0.33) postPage('prev');
-        else if (frac >= 0.67) postPage('next');
+        if (frac <= TAP_PREV_ZONE_END) postPage('prev');
+        else if (frac >= TAP_NEXT_ZONE_START) postPage('next');
       }
     }
     window.addEventListener('touchstart', onTouchStart, { passive: true });
     window.addEventListener('touchend', onTouchEnd, { passive: true });
     window.addEventListener('touchcancel', function () { startT = 0; }, { passive: true });
-  } catch (e) {}
+  } catch (e) {
+    // Глушим всё: страница из EPUB должна оставаться рабочей, даже если мост поднять не удалось.
+  }
   true;
 })();

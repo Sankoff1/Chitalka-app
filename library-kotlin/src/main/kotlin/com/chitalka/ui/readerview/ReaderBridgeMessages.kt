@@ -14,8 +14,12 @@ const val READER_WEB_SCROLL_POST_DELAY_MS: Long = 200L
 private val bridgeJson = Json { ignoreUnknownKeys = true }
 
 sealed class ReaderBridgeInboundMessage {
+    /**
+     * @param scrollRangeMax макс. scrollTop по документу главы; null — не обновлять сохранённый max (старые сообщения).
+     */
     data class Scroll(
         val y: Double,
+        val scrollRangeMax: Double?,
     ) : ReaderBridgeInboundMessage()
 
     data class Page(
@@ -39,7 +43,12 @@ fun parseReaderBridgeInboundMessage(json: String): ReaderBridgeInboundMessage? =
                 val prim = obj["y"]?.jsonPrimitive ?: return null
                 val y = prim.doubleFromBridge() ?: return null
                 if (!y.isFinite()) return null
-                ReaderBridgeInboundMessage.Scroll(y)
+                val yMaxPrim = obj["yMax"]?.jsonPrimitive
+                val yMax =
+                    yMaxPrim
+                        ?.doubleFromBridge()
+                        ?.takeIf { it.isFinite() && it >= 0.0 }
+                ReaderBridgeInboundMessage.Scroll(y, yMax)
             }
             "page" -> {
                 val dir = obj["dir"]?.jsonPrimitive?.content ?: return null

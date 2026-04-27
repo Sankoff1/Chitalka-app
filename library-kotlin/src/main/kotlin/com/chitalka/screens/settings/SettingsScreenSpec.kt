@@ -12,8 +12,6 @@ object SettingsScreenSpec {
     /** Высота меню выбора языка (две строки по 48 + разделитель). */
     const val LANGUAGE_MENU_ESTIMATE_PX: Int = 97
 
-    const val APP_VERSION_FALLBACK: String = "—"
-
     object I18nKeys {
         const val THEME_SECTION = "settings.themeSection"
         const val DARK_THEME = "settings.darkTheme"
@@ -64,18 +62,6 @@ object SettingsScreenSpec {
         const val LANGUAGE_ROW_TRAIL_WIDTH_DP: Int = 28
         const val LANGUAGE_CHECK_ICON_SIZE_DP: Int = 22
     }
-
-    /**
-     * Версия приложения для отображения. На Android передайте `BuildConfig.VERSION_NAME`
-     * вторым аргументом; первый зарезервирован под альтернативный источник (например, конфиг).
-     */
-    fun resolveAppVersion(
-        expoConfigVersion: String?,
-        nativeApplicationVersion: String?,
-    ): String =
-        expoConfigVersion?.takeIf { it.isNotBlank() }
-            ?: nativeApplicationVersion?.takeIf { it.isNotBlank() }
-            ?: APP_VERSION_FALLBACK
 
     /** Подпись пункта языка в выпадающем списке. */
     fun languageOptionLabel(

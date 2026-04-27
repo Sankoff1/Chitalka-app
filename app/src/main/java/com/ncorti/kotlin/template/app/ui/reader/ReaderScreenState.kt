@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.chitalka.core.types.LibraryBookRecord
+import com.chitalka.debug.ChitalkaMirrorLog
 import com.chitalka.epub.EpubService
 import com.chitalka.epub.EpubServiceError
 import com.chitalka.i18n.AppLocale
@@ -21,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.runBlocking
 
 internal enum class ReaderLoadPhase {
     Loading,
@@ -49,6 +51,7 @@ internal class ReaderScreenState(
     var transitionDirection by mutableIntStateOf(1)
 
     var latestScroll by mutableDoubleStateOf(0.0)
+    var latestScrollRangeMax by mutableDoubleStateOf(0.0)
     var busy by mutableStateOf(false)
     var bookRecord by mutableStateOf<LibraryBookRecord?>(null)
 
@@ -67,6 +70,18 @@ internal class ReaderScreenState(
     fun dispose() {
         scrollBridgeJob?.cancel()
         persistJob?.cancel()
+        if (phase == ReaderLoadPhase.Ready) {
+            val layer = activeLayer()
+            if (layer != null) {
+                try {
+                    runBlocking {
+                        persistNow(layer.chapterIndex, latestScroll, latestScrollRangeMax)
+                    }
+                } catch (e: Exception) {
+                    ChitalkaMirrorLog.w("Reader", "dispose flush progress failed bookId=$bookId", e)
+                }
+            }
+        }
         epub?.destroy()
         epub = null
     }

@@ -41,7 +41,7 @@
     "themeLight": "Светлая",
     "themeDark": "Тёмная",
     "darkTheme": "Тёмная тема",
-    "languageSection": "Язык интерфейса",
+    "languageSection": "Язык интерфейса (Language)",
     "languageRu": "Русский",
     "languageEn": "English",
     "versionLabel": "Версия приложения"
@@ -123,7 +123,8 @@
       "openFailed": "Не удалось открыть локальную базу данных. Проверьте свободное место и перезапустите приложение.",
       "generic": "Ошибка хранилища. Повторите попытку или очистите данные приложения.",
       "invalidBookId": "Идентификатор книги пустой.",
-      "invalidProgressOffset": "Некорректное значение прокрутки."
+      "invalidProgressOffset": "Некорректное значение прокрутки.",
+      "invalidProgressScrollRange": "Некорректный диапазон прокрутки главы."
     }
   }
 }

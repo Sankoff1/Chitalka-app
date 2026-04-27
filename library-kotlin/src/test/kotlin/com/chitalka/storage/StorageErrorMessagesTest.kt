@@ -28,6 +28,10 @@ class StorageErrorMessagesTest {
             "Invalid scroll offset value.",
             storageErrorMessage(AppLocale.EN, STORAGE_ERR_INVALID_PROGRESS_OFFSET),
         )
+        assertEquals(
+            "Некорректный диапазон прокрутки главы.",
+            storageErrorMessage(AppLocale.RU, STORAGE_ERR_INVALID_PROGRESS_SCROLL_RANGE),
+        )
     }
 
     @Test

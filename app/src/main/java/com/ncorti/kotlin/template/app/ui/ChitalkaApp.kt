@@ -4,11 +4,9 @@ package com.ncorti.kotlin.template.app.ui
 
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -16,7 +14,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.lifecycleScope
@@ -120,10 +117,6 @@ fun ChitalkaApp(activity: ComponentActivity) {
             }
         }
 
-    SideEffect {
-        activity.enableEdgeToEdge()
-    }
-
     val themeUi = remember(themeMode) { ThemeUiState(mode = themeMode) }
 
     ChitalkaMaterialTheme(
@@ -135,11 +128,7 @@ fun ChitalkaApp(activity: ComponentActivity) {
             LocalChitalkaThemeMode provides themeMode,
             LocalChitalkaThemeColors provides themeUi.colors,
         ) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .systemBarsPadding(),
-            ) {
+            Box(Modifier.fillMaxSize()) {
                 ChitalkaNavHost(
                     navController = navController,
                     persistence = persistence,

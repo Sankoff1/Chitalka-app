@@ -5,7 +5,7 @@ import com.chitalka.core.types.LibraryBookWithProgress
 internal const val JOINED_SELECT_COLUMNS =
     "SELECT lb.book_id, lb.file_uri, lb.title, lb.author, lb.file_size_bytes, " +
         "lb.cover_uri, lb.added_at, lb.total_chapters, lb.is_favorite, lb.deleted_at, " +
-        "rp.last_chapter_index"
+        "rp.last_chapter_index, rp.scroll_offset, rp.scroll_range_max"
 
 private suspend fun StorageService.queryJoined(sql: String): List<LibraryBookWithProgress> =
     withReadDb { db ->

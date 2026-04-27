@@ -4,8 +4,8 @@ import android.database.Cursor
 import com.chitalka.core.types.LibraryBookRecord
 import com.chitalka.core.types.LibraryBookWithProgress
 import com.chitalka.core.types.ReadingProgress
+import com.chitalka.library.libraryListProgressFraction
 import kotlin.math.max
-import kotlin.math.min
 
 internal fun Cursor.mapLibraryBookRecordByOrdinal(): LibraryBookRecord {
     val totalChapters = max(0, getInt(7))
@@ -27,10 +27,26 @@ internal fun Cursor.mapLibraryBookRecordByOrdinal(): LibraryBookRecord {
 internal fun Cursor.mapJoinedRowByOrdinal(): LibraryBookWithProgress {
     val record = mapLibraryBookRecordByOrdinal()
     val lastChapterIndex: Int? = if (isNull(10)) null else max(0, getInt(10))
+    val scrollOffset =
+        if (lastChapterIndex == null || isNull(11)) {
+            0.0
+        } else {
+            getDouble(11)
+        }
+    val scrollRangeMax =
+        if (lastChapterIndex == null || isNull(12)) {
+            0.0
+        } else {
+            getDouble(12)
+        }
     val progressFraction: Double? =
-        if (record.totalChapters > 0 && lastChapterIndex != null) {
-            val raw = (lastChapterIndex + 1).toDouble() / record.totalChapters.toDouble()
-            min(1.0, max(0.0, raw))
+        if (lastChapterIndex != null) {
+            libraryListProgressFraction(
+                totalChapters = record.totalChapters,
+                lastChapterIndex = lastChapterIndex,
+                scrollOffset = scrollOffset,
+                scrollRangeMax = scrollRangeMax,
+            )
         } else {
             null
         }
@@ -51,5 +67,8 @@ internal fun assertValidProgress(progress: ReadingProgress) {
     assertNonEmptyBookId(progress.bookId)
     if (!progress.scrollOffset.isFinite()) {
         throw StorageServiceError(STORAGE_ERR_INVALID_PROGRESS_OFFSET)
+    }
+    if (!progress.scrollRangeMax.isFinite() || progress.scrollRangeMax < 0.0) {
+        throw StorageServiceError(STORAGE_ERR_INVALID_PROGRESS_SCROLL_RANGE)
     }
 }

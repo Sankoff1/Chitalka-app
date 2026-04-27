@@ -16,6 +16,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import com.chitalka.core.types.ReadingProgress
 import com.chitalka.debug.ChitalkaMirrorLog
+import com.chitalka.epub.EPUB_EMPTY_SPINE
 import com.chitalka.epub.EpubService
 import com.chitalka.epub.EpubServiceError
 import com.chitalka.library.refreshBookCount
@@ -40,21 +41,47 @@ internal fun ReaderScreenState.schedulePersist(index: Int, scrollY: Double) {
     persistJob =
         scope.launch {
             delay(ReaderScreenSpec.Timing.SCROLL_PERSIST_DEBOUNCE_MS)
-            saveProgressSafely(index, scrollY)
+            saveProgressSafely(index, scrollY, latestScrollRangeMax)
         }
 }
 
-internal suspend fun ReaderScreenState.persistNow(index: Int, scrollY: Double) {
-    saveProgressSafely(index, scrollY)
+internal suspend fun ReaderScreenState.persistNow(index: Int, scrollY: Double, scrollRangeMax: Double) {
+    saveProgressSafely(index, scrollY, scrollRangeMax)
 }
 
-private suspend fun ReaderScreenState.saveProgressSafely(index: Int, scrollY: Double) {
+private suspend fun ReaderScreenState.flushInitialProgress(
+    chapterIndex: Int,
+    scrollY: Double,
+    scrollRangeMax: Double,
+) {
+    try {
+        storage.saveProgress(
+            ReadingProgress(
+                bookId = bookId,
+                lastChapterIndex = chapterIndex,
+                scrollOffset = scrollY,
+                scrollRangeMax = scrollRangeMax,
+                lastReadTimestamp = System.currentTimeMillis(),
+            ),
+        )
+        librarySession.refreshBookCount(storage)
+    } catch (e: Exception) {
+        ChitalkaMirrorLog.w(READER_LOG_TAG, "initial saveProgress / refresh failed bookId=$bookId", e)
+    }
+}
+
+private suspend fun ReaderScreenState.saveProgressSafely(
+    index: Int,
+    scrollY: Double,
+    scrollRangeMax: Double,
+) {
     try {
         storage.saveProgress(
             ReadingProgress(
                 bookId = bookId,
                 lastChapterIndex = index,
                 scrollOffset = scrollY,
+                scrollRangeMax = scrollRangeMax,
                 lastReadTimestamp = System.currentTimeMillis(),
             ),
         )
@@ -90,7 +117,7 @@ internal suspend fun ReaderScreenState.goToChapter(targetIndex: Int) {
 
     busy = true
     try {
-        persistNow(currentLayer.chapterIndex, latestScroll)
+        persistNow(currentLayer.chapterIndex, latestScroll, latestScrollRangeMax)
         val html = svc.prepareChapter(svc.getSpineChapterUri(clamped))
         val targetLayerId = ReaderScreenSpec.inactiveLayerId(activeLayerId)
         val nextLayer =
@@ -127,11 +154,12 @@ internal suspend fun ReaderScreenState.goToChapter(targetIndex: Int) {
         )
 
         latestScroll = 0.0
+        latestScrollRangeMax = 0.0
         activeLayerId = targetLayerId
         transitionTargetLayerId = null
         transitionProgress.snapTo(0f)
 
-        persistNow(clamped, 0.0)
+        persistNow(clamped, 0.0, 0.0)
     } catch (e: Exception) {
         transitionTargetLayerId = null
         incomingGateRef.set(null)
@@ -166,6 +194,11 @@ internal fun ReaderScreenState.handleBridge(
                     scope.launch {
                         delay(READER_BRIDGE_SCROLL_DEBOUNCE_MS)
                         latestScroll = msg.y
+                        msg.scrollRangeMax?.let { yMax ->
+                            if (yMax.isFinite() && yMax >= 0.0) {
+                                latestScrollRangeMax = yMax
+                            }
+                        }
                         val layer = activeLayer()
                         if (layer != null) {
                             schedulePersist(layer.chapterIndex, msg.y)
@@ -207,15 +240,12 @@ internal suspend fun ReaderScreenState.initialize(context: Context, nativePath: 
         val progress = storage.getProgress(bookId)
         val structure = service.open()
         if (structure.spine.isEmpty()) {
-            throw EpubServiceError(com.chitalka.epub.EPUB_EMPTY_SPINE)
+            throw EpubServiceError(EPUB_EMPTY_SPINE)
         }
         spineLength = structure.spine.size
         unpackedRoot = structure.unpackedRootUri
-        try {
-            storage.setBookTotalChapters(bookId, structure.spine.size)
-        } catch (e: Exception) {
-            ChitalkaMirrorLog.w(READER_LOG_TAG, "setBookTotalChapters failed bookId=$bookId", e)
-        }
+        runCatching { storage.setBookTotalChapters(bookId, structure.spine.size) }
+            .onFailure { ChitalkaMirrorLog.w(READER_LOG_TAG, "setBookTotalChapters failed bookId=$bookId", it) }
         val savedIndex =
             if (progress != null) {
                 ReaderScreenSpec.clampChapterIndex(progress.lastChapterIndex, spineLength)
@@ -223,9 +253,11 @@ internal suspend fun ReaderScreenState.initialize(context: Context, nativePath: 
                 0
             }
         val scroll = ReaderScreenSpec.normalizeSavedScrollOffset(progress?.scrollOffset)
+        val scrollMax = ReaderScreenSpec.normalizeSavedScrollRangeMax(progress?.scrollRangeMax)
         val uri = service.getSpineChapterUri(savedIndex)
         val html = service.prepareChapter(uri)
         latestScroll = scroll
+        latestScrollRangeMax = scrollMax
         layerA =
             ReaderScreenSpec.ReaderLayerState(
                 chapterIndex = savedIndex,
@@ -237,19 +269,7 @@ internal suspend fun ReaderScreenState.initialize(context: Context, nativePath: 
         activeLayerId = ReaderScreenSpec.ReaderLayerId.A
         transitionTargetLayerId = null
         phase = ReaderLoadPhase.Ready
-        try {
-            storage.saveProgress(
-                ReadingProgress(
-                    bookId = bookId,
-                    lastChapterIndex = savedIndex,
-                    scrollOffset = scroll,
-                    lastReadTimestamp = System.currentTimeMillis(),
-                ),
-            )
-            librarySession.refreshBookCount(storage)
-        } catch (e: Exception) {
-            ChitalkaMirrorLog.w(READER_LOG_TAG, "initial saveProgress / refresh failed bookId=$bookId", e)
-        }
+        flushInitialProgress(savedIndex, scroll, scrollMax)
     } catch (e: Exception) {
         service.destroy()
         epub = null

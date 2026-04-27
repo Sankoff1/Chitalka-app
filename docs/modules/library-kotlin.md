@@ -95,7 +95,7 @@ flowchart TB
 |------|------------|
 | `kotlin/com/chitalka/core/types/LibraryBookRecord.kt` | Запись книги в библиотеке. |
 | `kotlin/com/chitalka/core/types/LibraryBookWithProgress.kt` | Композиция: `record: LibraryBookRecord` + `lastChapterIndex: Int?` + `progressFraction: Double?`. Поля книги читаются через `book.record.title` и т.п. — без дублирования. |
-| `kotlin/com/chitalka/core/types/ReadingProgress.kt` | Модель прогресса. |
+| `kotlin/com/chitalka/core/types/ReadingProgress.kt` | Модель прогресса: глава, смещение скролла, макс. прокрутка по главе. |
 
 ### `com.chitalka.navigation`
 
@@ -114,6 +114,7 @@ flowchart TB
 | `kotlin/com/chitalka/library/LibraryBookLookup.kt` | Интерфейс поиска книги по id (реализация в `StorageService`). |
 | `kotlin/com/chitalka/library/LastOpenBook.kt` | Ключи и операции last-open book id. |
 | `kotlin/com/chitalka/library/LastOpenReaderRestore.kt` | `suspend fun restoreLastOpenReaderIfNeeded` — восстановление читалки при старте. |
+| `kotlin/com/chitalka/library/LibraryListProgressFraction.kt` | Доля прочитанного для списка библиотеки: глава + прокрутка внутри главы. |
 
 ### `com.chitalka.screens.*` — спецификации экранов (контракты для Compose в `app`)
 

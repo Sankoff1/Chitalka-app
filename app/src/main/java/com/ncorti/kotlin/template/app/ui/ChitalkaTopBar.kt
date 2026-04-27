@@ -38,6 +38,17 @@ import com.chitalka.navigation.DrawerScreen
 import com.chitalka.navigation.drawerLabelI18nPath
 import com.chitalka.ui.topbar.AppTopBarSpec
 
+private val SEARCH_FIELD_HEIGHT = 40.dp
+private val SEARCH_FIELD_CORNER = 20.dp
+private val SEARCH_FIELD_PADDING_H = 12.dp
+private const val SEARCH_FIELD_BG_ALPHA = 0.16f
+private const val SEARCH_FIELD_PLACEHOLDER_ALPHA = 0.7f
+private val SEARCH_ICON_SIZE = 18.dp
+private val SEARCH_ICON_GAP = 10.dp
+private val CLEAR_BUTTON_GAP = 4.dp
+private val CLEAR_BUTTON_SIZE = 28.dp
+private val CLEAR_ICON_SIZE = 16.dp
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ChitalkaTopBar(
@@ -123,25 +134,25 @@ private fun CompactSearchField(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(40.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(onPrimary.copy(alpha = 0.16f))
-            .padding(horizontal = 12.dp),
+            .height(SEARCH_FIELD_HEIGHT)
+            .clip(RoundedCornerShape(SEARCH_FIELD_CORNER))
+            .background(onPrimary.copy(alpha = SEARCH_FIELD_BG_ALPHA))
+            .padding(horizontal = SEARCH_FIELD_PADDING_H),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             Icons.Filled.Search,
             contentDescription = null,
             tint = onPrimary,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(SEARCH_ICON_SIZE),
         )
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(SEARCH_ICON_GAP))
         Box(modifier = Modifier.weight(1f)) {
             if (query.isEmpty()) {
                 Text(
                     placeholder,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = onPrimary.copy(alpha = 0.7f),
+                    color = onPrimary.copy(alpha = SEARCH_FIELD_PLACEHOLDER_ALPHA),
                 )
             }
             BasicTextField(
@@ -157,16 +168,16 @@ private fun CompactSearchField(
             )
         }
         if (showClear) {
-            Spacer(Modifier.width(4.dp))
+            Spacer(Modifier.width(CLEAR_BUTTON_GAP))
             IconButton(
                 onClick = onClear,
-                modifier = Modifier.size(28.dp),
+                modifier = Modifier.size(CLEAR_BUTTON_SIZE),
             ) {
                 Icon(
                     Icons.Filled.Close,
                     contentDescription = null,
                     tint = onPrimary,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(CLEAR_ICON_SIZE),
                 )
             }
         }

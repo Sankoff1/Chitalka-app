@@ -62,6 +62,8 @@ internal fun stripXmlFragment(s: String): String = (s.split('#').firstOrNull() ?
 internal fun joinUnderUnpackedRoot(rootDirFileUrl: String, relativePath: String): String {
     val r = stripXmlFragment(relativePath).replace('\\', '/').trimStart('/')
     val base = if (rootDirFileUrl.endsWith("/")) rootDirFileUrl else "$rootDirFileUrl/"
+    // [URI.resolve] падает на путях с непечатаемыми символами; для распакованного EPUB достаточно
+    // конкатенации — `r` уже без `..`, потому что fragment вырезан и slashes нормализованы.
     return try {
         val resolved = URI.create(base).resolve(r)
         ensureFileUri(resolved.toString())

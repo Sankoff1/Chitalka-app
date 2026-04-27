@@ -33,7 +33,17 @@ fun readerLoadEndScrollAndReadyScript(initialScrollY: Double): String {
     return """
         (function () {
           try { window.scrollTo(0, $y); } catch (e) {}
+          var reportScroll = function () {
+            var sy = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+            var h = document.documentElement.scrollHeight || document.body.scrollHeight || 0;
+            var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+            var yMax = Math.max(0, h - vh);
+            if (window.ReactNativeWebView) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({ t: 'scroll', y: sy, yMax: yMax }));
+            }
+          };
           var ping = function () {
+            reportScroll();
             if (window.ReactNativeWebView) {
               window.ReactNativeWebView.postMessage(JSON.stringify({ t: 'ready' }));
             }

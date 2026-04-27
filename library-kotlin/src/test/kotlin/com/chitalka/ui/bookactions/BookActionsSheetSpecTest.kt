@@ -20,18 +20,6 @@ class BookActionsSheetSpecTest {
     }
 
     @Test
-    fun favoriteIcon_toggle() {
-        assertEquals(
-            BookActionsSheetSpec.MaterialIcons.FAVORITE_BORDER,
-            BookActionsSheetSpec.favoriteActionIconName(false),
-        )
-        assertEquals(
-            BookActionsSheetSpec.MaterialIcons.FAVORITE,
-            BookActionsSheetSpec.favoriteActionIconName(true),
-        )
-    }
-
-    @Test
     fun favoriteLabelsRu() {
         val ru = AppLocale.RU
         assertEquals("В избранное", BookActionsSheetSpec.favoriteActionLabel(ru, false))

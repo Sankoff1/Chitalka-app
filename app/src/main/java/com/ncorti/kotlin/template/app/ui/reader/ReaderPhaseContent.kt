@@ -31,6 +31,13 @@ import com.chitalka.screens.reader.webViewBaseUrl
 import com.chitalka.theme.ThemeColors
 import com.chitalka.theme.ThemeMode
 
+private val ERROR_CONTENT_PADDING = 24.dp
+private val ERROR_TEXT_TOP_GAP = 12.dp
+private val ERROR_BUTTON_TOP_GAP = 20.dp
+private val LOADING_TEXT_TOP_GAP = 12.dp
+private val READER_TITLE_FONT_SIZE = 17.sp
+private const val EMPTY_TITLE_PLACEHOLDER = "…"
+
 @Composable
 internal fun ReaderErrorContent(
     locale: AppLocale,
@@ -42,7 +49,7 @@ internal fun ReaderErrorContent(
         modifier =
             modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(ERROR_CONTENT_PADDING),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
@@ -51,12 +58,12 @@ internal fun ReaderErrorContent(
         )
         Text(
             text = errorText,
-            modifier = Modifier.padding(top = 12.dp),
+            modifier = Modifier.padding(top = ERROR_TEXT_TOP_GAP),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Button(
             onClick = onBackToLibrary,
-            modifier = Modifier.padding(top = 20.dp),
+            modifier = Modifier.padding(top = ERROR_BUTTON_TOP_GAP),
         ) {
             Text(ReaderScreenSpec.backToBooks(locale))
         }
@@ -73,7 +80,7 @@ internal fun ReaderLoadingContent(
             CircularProgressIndicator()
             Text(
                 ReaderScreenSpec.loading(locale),
-                modifier = Modifier.padding(top = 12.dp),
+                modifier = Modifier.padding(top = LOADING_TEXT_TOP_GAP),
             )
         }
     }
@@ -110,8 +117,8 @@ internal fun ReaderReadyContent(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (titleText.isNotEmpty()) titleText else "…",
-                        fontSize = 17.sp,
+                        text = if (titleText.isNotEmpty()) titleText else EMPTY_TITLE_PLACEHOLDER,
+                        fontSize = READER_TITLE_FONT_SIZE,
                     )
                 },
                 navigationIcon = {

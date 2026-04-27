@@ -18,6 +18,8 @@ class ReaderBridgeScriptsTest {
         val s = readerLoadEndScrollAndReadyScript(42.9)
         assertTrue(s.contains("window.scrollTo(0, 42)"))
         assertTrue(s.contains("'ready'"))
+        assertTrue(s.contains("scroll"))
+        assertTrue(s.contains("yMax"))
         assertTrue(s.contains("requestAnimationFrame"))
     }
 

@@ -123,7 +123,8 @@
       "openFailed": "Could not open the local database. Check free space and restart the app.",
       "generic": "Storage error. Please retry or clear app data.",
       "invalidBookId": "Book id is empty.",
-      "invalidProgressOffset": "Invalid scroll offset value."
+      "invalidProgressOffset": "Invalid scroll offset value.",
+      "invalidProgressScrollRange": "Invalid chapter scroll range value."
     }
   }
 }

@@ -86,6 +86,8 @@ internal fun fileExistsAsFile(fileUri: String): Boolean {
 private fun File.readXmlTextLenient(): String {
     FileInputStream(this).use { ins ->
         val bytes = ins.readBytes()
+        // ISO-8859-1 — последний шанс прочитать заголовочные XML-теги, если декодер всё-таки упал
+        // (REPLACE должен был это покрыть, но на отдельных VM/Android-кастомах бывают сюрпризы).
         return try {
             StandardCharsets.UTF_8
                 .newDecoder()

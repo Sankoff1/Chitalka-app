@@ -27,7 +27,7 @@ class StorageServiceInstrumentedTest {
 
     @Test
     fun progress_roundTrip(): Unit = runBlocking {
-        val p = ReadingProgress("b1", 2, 10.0, 99L)
+        val p = ReadingProgress("b1", 2, 10.0, 100.0, 99L)
         storage.saveProgress(p)
         assertEquals(p, storage.getProgress("b1"))
     }
@@ -84,8 +84,8 @@ class StorageServiceInstrumentedTest {
                 deletedAt = null,
             ),
         )
-        storage.saveProgress(ReadingProgress("a", 0, 0.0, 100L))
-        storage.saveProgress(ReadingProgress("b", 0, 0.0, 200L))
+        storage.saveProgress(ReadingProgress("a", 0, 0.0, 0.0, 100L))
+        storage.saveProgress(ReadingProgress("b", 0, 0.0, 0.0, 200L))
         val list = storage.listRecentlyReadBooks()
         assertEquals(2, list.size)
         assertEquals("b", list[0].bookId)
@@ -108,7 +108,7 @@ class StorageServiceInstrumentedTest {
                 deletedAt = null,
             ),
         )
-        storage.saveProgress(ReadingProgress("p", 4, 0.0, 1L))
+        storage.saveProgress(ReadingProgress("p", 4, 500.0, 500.0, 1L))
         val item = storage.listLibraryBooks().single()
         assertEquals(4, item.lastChapterIndex)
         assertNotNull(item.progressFraction)
@@ -131,7 +131,7 @@ class StorageServiceInstrumentedTest {
                 deletedAt = null,
             ),
         )
-        storage.saveProgress(ReadingProgress("z", 0, 0.0, 1L))
+        storage.saveProgress(ReadingProgress("z", 0, 0.0, 0.0, 1L))
         storage.purgeBook("z")
         assertNull(storage.getLibraryBook("z"))
         assertNull(storage.getProgress("z"))

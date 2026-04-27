@@ -75,7 +75,7 @@ peers:
 
 | Файл | Назначение |
 |------|------------|
-| `com/chitalka/storage/StorageService.kt` | Класс `StorageService` + `withDb` / `withReadDb` (internal) и `mapDbException`; прогресс (`saveProgress` / `getProgress`), upsert книги (`addBook`, `upsertLibraryBook`, `setBookTotalChapters`, `setBookFavorite`), `getLibraryBook` (реализация `LibraryBookLookup`), счётчики `countLibraryBooks` / `countBooksWithProgress`. Чтения через `readableDatabase` (WAL), записи через `writableDatabase`; курсоры маппятся по ординалам. |
+| `com/chitalka/storage/StorageService.kt` | Класс `StorageService` + `withDb` / `withReadDb` (internal) и `mapDbException`; прогресс (`saveProgress` / `getProgress`, поля `scroll_offset` и `scroll_range_max` для доли внутри главы), upsert книги (`addBook`, `upsertLibraryBook`, `setBookTotalChapters`, `setBookFavorite`), `getLibraryBook` (реализация `LibraryBookLookup`), счётчики `countLibraryBooks` / `countBooksWithProgress`. Чтения через `readableDatabase` (WAL), записи через `writableDatabase`; курсоры маппятся по ординалам. |
 | `com/chitalka/storage/StorageServiceLists.kt` | Extension-функции `StorageService.list*Books` (library / recently read / favorite / trashed), `JOINED_SELECT_COLUMNS` и внутренний `queryJoined`. Вызывающие (`ChitalkaDrawerRouter`, `ChitalkaTrashPane`) импортируют их по имени. |
 | `com/chitalka/storage/StorageServiceTrash.kt` | Extension-функции `moveBookToTrash` / `restoreBookFromTrash` / `purgeBook` / `clearAllData` — работают через `withDb`. |
 | `com/chitalka/storage/StorageServiceMappers.kt` | `Cursor.mapLibraryBookRecordByOrdinal`, `Cursor.mapJoinedRowByOrdinal` (вычисляет `progressFraction`), `assertNonEmptyBookId` / `assertValidProgress`. |
@@ -86,7 +86,8 @@ peers:
 
 | Файл | Назначение |
 |------|------------|
-| `com/chitalka/epub/EpubService.kt` | Высокоуровневые операции с EPUB (таймауты из `library-kotlin`); разбор OPF/spine в `open()` на `Dispatchers.IO`; доменные `EpubServiceError` пробрасываются без общей обёртки. `prepareChapterBody` переписывает `<img src>` одним проходом через `StringBuilder`; регэкспы `IMG_TAG_REGEX`/`SRC_ATTR_REGEX`/`HTTP_URL_REGEX` — file-level singletons. |
+| `com/chitalka/epub/EpubService.kt` | Высокоуровневые операции с EPUB (таймауты из `library-kotlin`); разбор OPF/spine в `open()` на `Dispatchers.IO`; доменные `EpubServiceError` пробрасываются без общей обёртки. `prepareChapter` делегирует переписывание `<img src>` в `EpubChapterPrep.kt`. |
+| `com/chitalka/epub/EpubChapterPrep.kt` | `prepareChapterBodyForReader(unpackedRootUri, htmlPath)` — один проход `StringBuilder` по html, file-level регэкспы `IMG_TAG_REGEX`/`SRC_ATTR_REGEX`/`HTTP_URL_REGEX`. |
 | `com/chitalka/epub/EpubIo.kt` | Чтение ZIP/файлов; устойчивое UTF-8 + BOM для `container.xml` и OPF (`readOpfFromUnpackedRootFiles`). |
 | `com/chitalka/epub/EpubMetadata.kt` | Обложка, автор и пр. |
 | `com/chitalka/epub/EpubOpfXml.kt` | Разбор OPF. |

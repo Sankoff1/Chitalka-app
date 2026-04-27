@@ -31,6 +31,7 @@ internal class ChitalkaSqliteOpenHelper(
               book_id TEXT PRIMARY KEY NOT NULL,
               last_chapter_index INTEGER NOT NULL,
               scroll_offset REAL NOT NULL,
+              scroll_range_max REAL NOT NULL DEFAULT 0,
               last_read_timestamp INTEGER NOT NULL
             );
             """.trimIndent(),
@@ -61,6 +62,7 @@ internal class ChitalkaSqliteOpenHelper(
     override fun onOpen(db: SQLiteDatabase) {
         super.onOpen(db)
         migrateLibraryColumnsIfNeeded(db)
+        migrateReadingProgressColumnsIfNeeded(db)
         createIndexes(db)
     }
 
@@ -69,6 +71,37 @@ internal class ChitalkaSqliteOpenHelper(
         addColumnIfMissing(db, columns, "total_chapters", "INTEGER NOT NULL DEFAULT 0")
         addColumnIfMissing(db, columns, "is_favorite", "INTEGER NOT NULL DEFAULT 0")
         addColumnIfMissing(db, columns, "deleted_at", "INTEGER")
+    }
+
+    private fun migrateReadingProgressColumnsIfNeeded(db: SQLiteDatabase) {
+        val columns = listReadingProgressColumnNames(db)
+        addReadingProgressColumnIfMissing(db, columns, "scroll_range_max", "REAL NOT NULL DEFAULT 0")
+    }
+
+    private fun listReadingProgressColumnNames(db: SQLiteDatabase): MutableSet<String> {
+        val set = mutableSetOf<String>()
+        db.rawQuery("PRAGMA table_info($TABLE_READING_PROGRESS);", null).use { c ->
+            val idx = c.getColumnIndex("name")
+            while (c.moveToNext()) {
+                if (idx >= 0) set.add(c.getString(idx))
+            }
+        }
+        return set
+    }
+
+    private fun addReadingProgressColumnIfMissing(
+        db: SQLiteDatabase,
+        existing: MutableSet<String>,
+        column: String,
+        typeClause: String,
+    ) {
+        if (existing.contains(column)) return
+        try {
+            db.execSQL("ALTER TABLE $TABLE_READING_PROGRESS ADD COLUMN $column $typeClause;")
+            existing.add(column)
+        } catch (e: SQLException) {
+            ChitalkaMirrorLog.e(TAG, "addReadingProgressColumnIfMissing($column)", e)
+        }
     }
 
     private fun listLibraryColumnNames(db: SQLiteDatabase): MutableSet<String> {

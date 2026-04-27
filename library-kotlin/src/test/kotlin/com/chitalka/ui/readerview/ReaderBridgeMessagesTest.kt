@@ -11,7 +11,18 @@ class ReaderBridgeMessagesTest {
     fun parseScroll() {
         val m = parseReaderBridgeInboundMessage("""{"t":"scroll","y":12.5}""")
         assertTrue(m is ReaderBridgeInboundMessage.Scroll)
-        assertEquals(12.5, (m as ReaderBridgeInboundMessage.Scroll).y, 0.0)
+        val scroll = m as ReaderBridgeInboundMessage.Scroll
+        assertEquals(12.5, scroll.y, 0.0)
+        assertEquals(null, scroll.scrollRangeMax)
+    }
+
+    @Test
+    fun parseScroll_withYMax() {
+        val m = parseReaderBridgeInboundMessage("""{"t":"scroll","y":10,"yMax":800}""")
+        assertTrue(m is ReaderBridgeInboundMessage.Scroll)
+        val scroll = m as ReaderBridgeInboundMessage.Scroll
+        assertEquals(10.0, scroll.y, 0.0)
+        assertEquals(800.0, scroll.scrollRangeMax!!, 0.0)
     }
 
     @Test

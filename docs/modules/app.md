@@ -108,7 +108,8 @@ flowchart TB
 | `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/library/BookRowCard.kt` | Карточка книги: `BookRowCard` (Card + cover + title/author/favorite + меню) и приватные `ReadingProgressBlock`, `BookCover` — Layout-константы и i18n-ключи через `BookCardSpec`. |
 | `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/library/BookActionsContent.kt` | Контент `ModalBottomSheet`: `BookActionsContent` (favorite toggle / move-to-trash / cancel) + приватный `ActionRow`; вызывает `storage.setBookFavorite` и `storage.moveBookToTrash`. |
 | `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/library/ChitalkaTrashPane.kt` | Корзина: `TrashScreenSpec`, удалённые книги. |
-| `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/settings/ChitalkaSettingsPane.kt` | Локаль и тема: `I18nUiState`, `persistLocale` / `persistThemeMode`. |
+| `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/settings/ChitalkaSettingsPane.kt` | Локаль и тема: `I18nUiState`, `persistLocale` / `persistThemeMode`; внутри — `SettingsCard`. |
+| `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/settings/LanguageDropdown.kt` | Кастомный dropdown выбора локали (trigger + `Popup` + строки локалей через `APP_LOCALES`); используется только из `ChitalkaSettingsPane`. |
 | `chitalka-kotlin/app/src/main/java/com/ncorti/kotlin/template/app/ui/debug/ChitalkaDebugLogsPane.kt` | Подписка на `debugLog*` из `library-kotlin`; очистка, копирование в буфер обмена (`ClipboardManager`), экспорт файла; подписи через `DebugLogsScreenSpec`. Перестроение списка по подписке coalesc'ится через `AtomicBoolean` + `delay(DEBUG_LOG_RELOAD_COALESCE_MS)`, чтобы шторм `console.*` из WebView не триггерил `reload()` per-line. |
 
 ---

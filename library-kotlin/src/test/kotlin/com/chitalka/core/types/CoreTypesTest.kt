@@ -12,6 +12,7 @@ class CoreTypesTest {
             bookId = "b1",
             lastChapterIndex = 2,
             scrollOffset = 120.5,
+            scrollRangeMax = 400.0,
             lastReadTimestamp = 1_700_000_000_000L,
         )
         val b = a.copy(scrollOffset = 200.0)
